@@ -54,6 +54,59 @@ app.post("/api/tour-details", async (req, res) => {
   }
 });
 
+// API Proxy for Rayna Tours Search
+app.post("/api/tours", async (req, res) => {
+  console.log('Proxying request to Rayna Tours search API...', req.body);
+  try {
+    const response = await axios.post('https://sandbox.raynatours.com/api/Tour/tourSearch', req.body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}`
+      }
+    });
+    console.log('Rayna Tours search response status:', response.status);
+    res.json(response.data);
+  } catch (error: any) {
+    console.error('Proxy error (tours):', error.message);
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({ error: 'Failed to fetch tours from Rayna' });
+    }
+  }
+});
+
+// Gemini Chat Endpoint
+import { GoogleGenAI } from "@google/genai";
+const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+app.post("/api/chat", async (req, res) => {
+  const { message, history } = req.body;
+  
+  if (!process.env.GEMINI_API_KEY) {
+    return res.status(500).json({ error: "Gemini API Key is not configured" });
+  }
+
+  try {
+    const model = "gemini-3-flash-preview";
+    const chat = genAI.chats.create({
+      model,
+      config: {
+        systemInstruction: "You are a helpful travel assistant for Rayna B2B. You help travel agents find the best tours, attractions, and hotels in the UAE. Be professional, friendly, and concise.",
+      },
+    });
+
+    // Send history if provided
+    // Note: sendMessage only takes message, so we'd need to handle history differently if needed
+    // For now, let's just send the message.
+    const response = await chat.sendMessage({ message });
+    res.json({ text: response.text });
+  } catch (error: any) {
+    console.error('Gemini Chat Error:', error.message);
+    res.status(500).json({ error: "Failed to get response from AI" });
+  }
+});
+
 async function setupVite() {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

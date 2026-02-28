@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
+import { ChatAssistant } from './components/ChatAssistant';
+
 // --- Types ---
 
 interface Tour {
@@ -861,7 +863,7 @@ const HomeView = ({ onLogin }: { onLogin: () => void }) => {
             ].map((item, idx) => (
               <div key={idx} className="bg-white p-8 rounded-3xl shadow-sm hover:shadow-md transition-all border border-slate-100">
                 <div className="w-14 h-14 bg-brand-light rounded-2xl flex items-center justify-center mb-6">
-                  {React.cloneElement(item.icon as React.ReactElement, { size: 28 })}
+                  {React.cloneElement(item.icon as React.ReactElement<any>, { size: 28 })}
                 </div>
                 <h3 className="text-xl font-display font-bold text-slate-900 mb-3">{item.title}</h3>
                 <p className="text-slate-500 text-sm leading-relaxed">{item.desc}</p>
@@ -1235,13 +1237,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-8 left-8 z-40">
-        <button className="bg-[#4CAF50] text-white px-6 py-3 rounded-full shadow-xl flex items-center gap-2 font-bold hover:scale-105 transition-transform">
-          <MessageCircle size={20} />
-          Message Us
-        </button>
-      </div>
+      <ChatAssistant />
 
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40">
         <div className="bg-yellow-400 text-black px-2 py-6 rounded-r-lg font-bold text-xs [writing-mode:vertical-rl] rotate-180 cursor-pointer shadow-lg">
