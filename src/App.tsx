@@ -355,6 +355,23 @@ const SearchResults = ({
   cityName: string;
   onTourClick: (tour: RaynaTour) => void;
 }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState(10000);
+
+  const filteredTours = tours.filter(tour => {
+    const matchesSearch = tour.tourName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategories.length === 0 || selectedCategories.includes(tour.cityTourType);
+    // Note: Rayna API doesn't always return price in static data, but we can mock it if needed
+    // For now, let's just filter by search and category
+    return matchesSearch && matchesCategory;
+  });
+
+  const toggleCategory = (cat: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+    );
+  };
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
       {/* Secondary Nav / Breadcrumbs */}
@@ -450,7 +467,12 @@ const SearchResults = ({
                 {['Adventure', 'Culture', 'Sightseeing', 'Luxury'].map(cat => (
                   <label key={cat} className="flex items-center gap-3 text-sm text-slate-600 cursor-pointer group">
                     <div className="relative flex items-center justify-center">
-                      <input type="checkbox" className="peer appearance-none w-5 h-5 border-2 border-slate-200 rounded-lg checked:bg-brand checked:border-brand transition-all" />
+                      <input 
+                        type="checkbox" 
+                        checked={selectedCategories.includes(cat)}
+                        onChange={() => toggleCategory(cat)}
+                        className="peer appearance-none w-5 h-5 border-2 border-slate-200 rounded-lg checked:bg-brand checked:border-brand transition-all" 
+                      />
                       <X className="absolute text-white opacity-0 peer-checked:opacity-100 transition-opacity" size={12} />
                     </div>
                     <span className="group-hover:text-slate-900 transition-colors">{cat}</span>
@@ -480,6 +502,8 @@ const SearchResults = ({
                 <input 
                   type="text" 
                   placeholder="Search activities..." 
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 focus:border-brand transition-all"
                 />
               </div>
@@ -496,9 +520,9 @@ const SearchResults = ({
                 <div key={i} className="bg-white rounded-[2rem] h-[400px] animate-pulse border border-slate-100"></div>
               ))}
             </div>
-          ) : tours.length > 0 ? (
+          ) : filteredTours.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-              {tours.map((tour, idx) => (
+              {filteredTours.map((tour, idx) => (
                 <motion.div 
                   key={tour.tourId}
                   initial={{ opacity: 0, y: 20 }}
@@ -582,6 +606,56 @@ const SearchResults = ({
   );
 };
 
+const BookingModal = ({ isOpen, onClose, tourName }: { isOpen: boolean, onClose: () => void, tourName: string }) => {
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+          />
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden"
+          >
+            <div className="p-8 text-center">
+              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShieldCheck size={40} />
+              </div>
+              <h3 className="text-2xl font-display font-bold text-slate-900 mb-2">Booking Initiated!</h3>
+              <p className="text-slate-500 mb-8">
+                Your request for <span className="font-bold text-slate-900">"{tourName}"</span> has been sent to our reservation team. You will receive a confirmation shortly.
+              </p>
+              <div className="bg-slate-50 rounded-2xl p-6 mb-8 text-left">
+                <div className="flex justify-between items-center mb-3">
+                  <span className="text-sm text-slate-500">Booking ID</span>
+                  <span className="text-sm font-bold text-slate-900">#RT-{Math.floor(Math.random() * 90000) + 10000}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-slate-500">Status</span>
+                  <span className="text-xs font-bold text-brand bg-brand/10 px-3 py-1 rounded-full">Processing</span>
+                </div>
+              </div>
+              <button 
+                onClick={onClose}
+                className="w-full bg-slate-900 text-white py-4 rounded-2xl font-bold hover:bg-slate-800 transition-all"
+              >
+                Close & Continue
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 const TourDetailView = ({ 
   tour, 
   onBack 
@@ -590,9 +664,15 @@ const TourDetailView = ({
   onBack: () => void;
 }) => {
   const [activeImage, setActiveImage] = useState(tour.imagePath);
+  const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
 
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
+      <BookingModal 
+        isOpen={isBookingModalOpen} 
+        onClose={() => setIsBookingModalOpen(false)} 
+        tourName={tour.tourName} 
+      />
       {/* Detail Header */}
       <div className="bg-white border-b border-slate-200 py-4 sticky top-16 z-40">
         <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
@@ -603,7 +683,10 @@ const TourDetailView = ({
             <button className="p-2 text-slate-400 hover:text-brand transition-colors">
               <Globe size={20} />
             </button>
-            <button className="bg-brand text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-brand/20">
+            <button 
+              onClick={() => setIsBookingModalOpen(true)}
+              className="bg-brand text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-brand/20"
+            >
               Book Now
             </button>
           </div>
@@ -745,7 +828,10 @@ const TourDetailView = ({
                 </div>
               </div>
 
-              <button className="w-full bg-brand text-white py-4 rounded-2xl font-bold text-lg hover:bg-brand-dark transition-all shadow-xl shadow-brand/20 mb-4">
+              <button 
+                onClick={() => setIsBookingModalOpen(true)}
+                className="w-full bg-brand text-white py-4 rounded-2xl font-bold text-lg hover:bg-brand-dark transition-all shadow-xl shadow-brand/20 mb-4"
+              >
                 Check Availability
               </button>
               
@@ -881,13 +967,17 @@ const DashboardView = ({
   cities, 
   loadingCities,
   selectedCity,
-  onCityChange
+  onCityChange,
+  selectedDate,
+  onDateChange
 }: { 
   onSearch: () => void;
   cities: City[];
   loadingCities: boolean;
   selectedCity: string;
   onCityChange: (cityId: string) => void;
+  selectedDate: string;
+  onDateChange: (date: string) => void;
 }) => {
   const [activeTab, setActiveTab] = useState('Activities');
 
@@ -1005,8 +1095,9 @@ const DashboardView = ({
               <div className="relative group">
                 <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={18} />
                 <input 
-                  type="text" 
-                  placeholder="Select Date" 
+                  type="date" 
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
                   className="w-full pl-12 pr-4 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/10 focus:border-brand transition-all"
                 />
               </div>
@@ -1087,6 +1178,7 @@ export default function App() {
   const [tours, setTours] = useState<RaynaTour[]>([]);
   const [loadingTours, setLoadingTours] = useState(false);
   const [selectedCityId, setSelectedCityId] = useState('');
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedTour, setSelectedTour] = useState<TourDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
@@ -1126,15 +1218,13 @@ export default function App() {
 
   const handleTourClick = async (tour: RaynaTour) => {
     setLoadingDetail(true);
-    // We don't change view immediately to show a loading state if needed, 
-    // but for now let's just go to detail view and handle loading there or here.
     try {
       const response = await axios.post('/api/tour-details', {
         CountryId: tour.countryId,
         CityId: tour.cityId,
         TourId: tour.tourId,
         ContractId: tour.contractId,
-        TravelDate: new Date().toISOString().split('T')[0].replace(/-/g, '/'), // Today's date as default
+        TravelDate: selectedDate.replace(/-/g, '/'),
         LanguageId: 1,
         CurrencyCode: 'AED'
       });
@@ -1214,6 +1304,8 @@ export default function App() {
               loadingCities={loadingCities}
               selectedCity={selectedCityId}
               onCityChange={setSelectedCityId}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
             />
           </motion.div>
         )}
