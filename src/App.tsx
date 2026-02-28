@@ -29,8 +29,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-import { ChatAssistant } from './components/ChatAssistant';
-
 // --- Types ---
 
 interface Tour {
@@ -1103,13 +1101,20 @@ export default function App() {
     try {
       const response = await axios.post('/api/tours', {
         countryId: 13063,
-        cityId: selectedCityId
+        cityId: String(selectedCityId)
       });
       const data = response.data;
-      if (data.statuscode === 200 && data.result) {
-        setTours(data.result);
+      const status = data.statuscode ?? data.StatusCode;
+      const result = data.result ?? data.Result;
+
+      if (Number(status) === 200 && result) {
+        const tourList = Array.isArray(result) ? result : (result.tours || []);
+        setTours(tourList);
       } else {
         setTours([]);
+        if (status && Number(status) !== 200) {
+          alert(`API Error: ${status}. Please try another city.`);
+        }
       }
     } catch (error) {
       console.error('Error fetching tours:', error);
@@ -1125,15 +1130,20 @@ export default function App() {
     // but for now let's just go to detail view and handle loading there or here.
     try {
       const response = await axios.post('/api/tour-details', {
-        countryId: tour.countryId,
-        cityId: tour.cityId,
-        tourId: tour.tourId,
-        contractId: tour.contractId,
-        travelDate: new Date().toISOString().split('T')[0].replace(/-/g, '/') // Today's date as default
+        CountryId: tour.countryId,
+        CityId: tour.cityId,
+        TourId: tour.tourId,
+        ContractId: tour.contractId,
+        TravelDate: new Date().toISOString().split('T')[0].replace(/-/g, '/'), // Today's date as default
+        LanguageId: 1,
+        CurrencyCode: 'AED'
       });
       const data = response.data;
-      if (data.statuscode === 200 && data.result && data.result.length > 0) {
-        setSelectedTour(data.result[0]);
+      const status = data.statuscode ?? data.StatusCode;
+      const result = data.result ?? data.Result;
+
+      if (Number(status) === 200 && result && result.length > 0) {
+        setSelectedTour(result[0]);
         setView('detail');
       } else {
         alert('Failed to load tour details');
@@ -1159,8 +1169,11 @@ export default function App() {
           CountryId: 13063
         });
         const data = response.data;
-        if (data.statuscode === 200 && data.result) {
-          setCities(data.result);
+        const status = data.statuscode ?? data.StatusCode;
+        const result = data.result ?? data.Result;
+
+        if (Number(status) === 200 && result) {
+          setCities(result);
         }
       } catch (error) {
         console.error('Error fetching cities:', error);
@@ -1236,8 +1249,6 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      <ChatAssistant />
 
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40">
         <div className="bg-yellow-400 text-black px-2 py-6 rounded-r-lg font-bold text-xs [writing-mode:vertical-rl] rotate-180 cursor-pointer shadow-lg">
