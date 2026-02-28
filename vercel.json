@@ -4,11 +4,6 @@
   "outputDirectory": "dist",
   "installCommand": "npm install",
   "framework": "vite",
-  "functions": {
-    "api/*.ts": {
-      "runtime": "@vercel/node"
-    }
-  },
   "rewrites": [
     { "source": "/api/cities", "destination": "/api/cities" },
     { "source": "/api/tours", "destination": "/api/tours" },
