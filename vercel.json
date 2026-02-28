@@ -1,24 +1,19 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.ts",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "package.json",
-      "use": "@vercel/static-build",
-      "config": { "distDir": "dist" }
+  "buildCommand": "vite build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "functions": {
+    "api/*.ts": {
+      "runtime": "@vercel/node"
     }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "server.ts"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
+  },
+  "rewrites": [
+    { "source": "/api/cities", "destination": "/api/cities" },
+    { "source": "/api/tours", "destination": "/api/tours" },
+    { "source": "/api/tour-details", "destination": "/api/tour-details" },
+    { "source": "/api/tour-options", "destination": "/api/tour-options" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

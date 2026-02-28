@@ -32,6 +32,28 @@ app.post("/api/cities", async (req, res) => {
   }
 });
 
+// API Proxy for Rayna Tours Options/Availability (live pricing by pax)
+app.post("/api/tour-options", async (req, res) => {
+  console.log('Proxying request to Rayna Tours tour options API...', req.body);
+  try {
+    const response = await axios.post('https://sandbox.raynatours.com/api/Tour/tourOptions', req.body, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}`
+      }
+    });
+    console.log('Rayna Tours tour options response status:', response.status);
+    res.json(response.data);
+  } catch (error: any) {
+    console.error('Proxy error (tour-options):', error.message);
+    if (error.response) {
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      res.status(500).json({ error: 'Failed to fetch tour options from Rayna' });
+    }
+  }
+});
+
 // API Proxy for Rayna Tours Static Data by ID
 app.post("/api/tour-details", async (req, res) => {
   console.log('Proxying request to Rayna Tours static data by ID API...', req.body);
