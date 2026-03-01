@@ -5,6 +5,7 @@ import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { SearchResults } from './pages/SearchResults';
 import { TourDetailView } from './pages/TourDetail';
+import { MyBookings } from './pages/MyBookings';
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/results" element={<SearchResults />} />
         <Route path="/detail/:tourId" element={<TourDetailView />} />
+        <Route path="/my-bookings" element={<MyBookings />} />
       </Routes>
 
       <div className="fixed left-0 top-1/2 -translate-y-1/2 z-40">

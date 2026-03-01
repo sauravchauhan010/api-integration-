@@ -144,12 +144,120 @@ export interface TimeSlot {
   isDynamicPrice: boolean;
 }
 
+export interface TransferTime {
+  tourId: number;
+  tourOptionId: number;
+  transferType: string;
+  transferTime: string;
+  transferId: number;
+  duration: string;
+  mobileVoucher: boolean;
+  printedVoucher: boolean;
+  instantConfirmation: boolean;
+  onRequest: boolean;
+  requiedhrs: boolean;
+  disableChild: boolean;
+  disableInfant: boolean;
+  twoWayTransfer: boolean;
+  portalTicket: boolean;
+  allowTodaysBooking: boolean;
+  cancellationPolicy: string;
+  cancellationPolicyDescription: string;
+  childPolicy: string;
+  childPolicyDescription: string;
+  cutOffhrs: number;
+  onRequestCutoff: boolean;
+  inclusion: string;
+  exclusion: string;
+}
+
+export interface TourOptionStaticData {
+  touroption: TourOption[];
+  operationdays: any[];
+  specialdates: any[];
+  transfertime: TransferTime[];
+}
+
+export interface BookingRequest {
+  uniqueNo: string;
+  TourDetails: {
+    serviceUniqueId: number;
+    tourId: number;
+    optionId: number;
+    adult: number;
+    child: number;
+    infant: number;
+    tourDate: string;
+    timeSlotId: string;
+    startTime: string;
+    transferId: number;
+    pickup: string;
+    adultRate: number;
+    childRate: number;
+    serviceTotal: string;
+  }[];
+  passengers: {
+    serviceType: string;
+    prefix: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    mobile: string;
+    nationality: string;
+    message: string;
+    leadPassenger: number;
+    paxType: string;
+    clientReferenceNo: string;
+  }[];
+}
+
 export interface BookingResponse {
-  refernceNo: string;
-  status: string;
+  statuscode: number;
+  error: string | null;
+  result: {
+    details: {
+      status: string;
+      bookingId: number;
+      downloadRequired: boolean;
+      serviceUniqueId: string;
+      servicetype: string;
+      confirmationNo: string;
+      ticketURL?: string;
+    }[];
+    referenceNo: string;
+    ticketURL?: string;
+  };
+}
+
+export interface GetBookedTicketsRequest {
+  uniqNO: number;
+  referenceNo: string;
+  bookedOption: {
+    serviceUniqueId: string;
+    bookingId: number;
+  }[];
+}
+
+export interface GetBookedTicketsResponse {
+  statuscode: number;
+  error: string | null;
+  url: string | null;
+  ticketURL?: string;
+  count: number;
+  result: any;
+}
+
+export interface CancelBookingRequest {
   bookingId: string;
-  downloadRequired: boolean;
-  serviceUniqueId: string;
-  servicetype: string;
-  confirmationNo: string;
+  referenceNo: string;
+  cancellationReason: string;
+}
+
+export interface CancelBookingResponse {
+  statuscode: number;
+  error: string | null;
+  result: {
+    status: number;
+    message: string;
+  };
 }

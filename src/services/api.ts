@@ -5,10 +5,14 @@ import {
   RaynaTour, 
   TourDetail, 
   TourOption, 
+  TourOptionStaticData,
   TourPrice, 
   TourOptionPrice, 
   TimeSlot, 
-  BookingResponse 
+  BookingRequest,
+  BookingResponse,
+  GetBookedTicketsRequest,
+  GetBookedTicketsResponse
 } from '../types';
 
 const api = axios.create({
@@ -32,25 +36,30 @@ export const tourService = {
   },
 
   getTourDetails: async (params: {
-    CountryId: number;
-    CityId: number;
-    TourId: number;
-    ContractId: number;
-    TravelDate: string;
-    LanguageId?: number;
-    CurrencyCode?: string;
+    countryId: number;
+    cityId: number;
+    tourId: number;
+    contractId: number;
+    travelDate: string;
+    languageId?: number;
+    currencyCode?: string;
   }): Promise<TourDetail> => {
     const response = await api.post('/tour-details', {
       ...params,
-      LanguageId: params.LanguageId || 1,
-      CurrencyCode: params.CurrencyCode || 'AED'
+      languageId: params.languageId || 1,
+      currencyCode: params.currencyCode || 'AED'
     });
     return response.data.result?.[0];
   },
 
-  getTourOptionsStatic: async (tourId: number, contractId: number): Promise<TourOption[]> => {
+  getTourOptionsStatic: async (tourId: number, contractId: number): Promise<TourOptionStaticData> => {
     const response = await api.post('/tour-options-static', { tourId, contractId });
-    return response.data.result?.touroption || [];
+    return response.data.result;
+  },
+
+  createBooking: async (bookingData: BookingRequest): Promise<BookingResponse> => {
+    const response = await api.post('/bookings', bookingData);
+    return response.data;
   },
 
   getTourPrices: async (countryId: number, cityId: number, travelDate: string): Promise<TourPrice[]> => {
@@ -99,16 +108,12 @@ export const tourService = {
 };
 
 export const bookingService = {
-  createBooking: async (bookingData: any): Promise<BookingResponse[]> => {
+  createBooking: async (bookingData: BookingRequest): Promise<BookingResponse> => {
     const response = await api.post('/bookings', bookingData);
-    return response.data.result || [];
+    return response.data;
   },
 
-  getTickets: async (params: {
-    uniqNO: number;
-    referenceNo: string;
-    bookedOption: Array<{ serviceUniqueId: string; bookingId: number }>;
-  }): Promise<any> => {
+  getBookedTickets: async (params: GetBookedTicketsRequest): Promise<GetBookedTicketsResponse> => {
     const response = await api.post('/get-tickets', params);
     return response.data;
   },

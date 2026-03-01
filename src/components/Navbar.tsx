@@ -1,5 +1,5 @@
 import React from 'react';
-import { Phone, Globe, Menu, ShoppingCart, Bell, ChevronDown } from 'lucide-react';
+import { Phone, Globe, Menu, ShoppingCart, Bell, ChevronDown, Ticket } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export const Navbar = () => {
@@ -24,6 +24,7 @@ export const Navbar = () => {
             <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
               <a href="#" className="hover:text-brand transition-colors">Destinations</a>
               <a href="#" className="hover:text-brand transition-colors">Offers</a>
+              <Link to="/my-bookings" className="hover:text-brand transition-colors">My Bookings</Link>
               <a href="#" className="hover:text-brand transition-colors">Support</a>
             </div>
           </div>
@@ -65,6 +66,9 @@ export const DashboardNavbar = () => {
     <div className="bg-white border-b border-slate-200 py-3">
       <div className="max-w-7xl mx-auto px-4 flex justify-between items-center text-xs font-bold text-slate-500">
         <div className="flex items-center gap-6">
+          <Link to="/my-bookings" className="hover:text-brand cursor-pointer flex items-center gap-1.5">
+            <Ticket size={14} className="text-brand" /> My Bookings
+          </Link>
           <span className="flex items-center gap-1.5"><Phone size={14} className="text-brand" /> 24/7 Support</span>
           <span className="flex items-center gap-1.5"><Globe size={14} className="text-brand" /> English (AED)</span>
           <button className="bg-brand text-white px-4 py-1.5 rounded-full flex items-center gap-2 hover:bg-brand-dark transition-all">

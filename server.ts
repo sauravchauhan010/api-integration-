@@ -24,7 +24,7 @@ const proxyRequest = async (endpoint: string, method: 'get' | 'post', body: any,
     const config: any = {
       headers: {
         'Content-Type': 'application/json',
-        'ApiKey': process.env.VITE_RAYNA_API_TOKEN 
+        'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}`
       }
     };
 
