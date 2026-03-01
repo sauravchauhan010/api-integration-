@@ -5,6 +5,12 @@ import axios from "axios";
 
 dotenv.config();
 
+if (!process.env.VITE_RAYNA_API_TOKEN) {
+  console.warn("WARNING: VITE_RAYNA_API_TOKEN is not set in .env or Secrets!");
+} else {
+  console.log("API Token loaded successfully (length: " + process.env.VITE_RAYNA_API_TOKEN.length + ")");
+}
+
 const app = express();
 const PORT = 3000;
 const BASE_URL = 'https://sandbox.raynatours.com';
