@@ -2,18 +2,23 @@
   "version": 2,
   "builds": [
     {
+      "src": "server.ts",
+      "use": "@vercel/node"
+    },
+    {
       "src": "package.json",
       "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
+      "config": { "distDir": "dist" }
     }
   ],
   "routes": [
-    { "src": "/api/cities", "dest": "/api/cities" },
-    { "src": "/api/tours", "dest": "/api/tours" },
-    { "src": "/api/tour-details", "dest": "/api/tour-details" },
-    { "src": "/api/tour-options", "dest": "/api/tour-options" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    {
+      "src": "/api/(.*)",
+      "dest": "server.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
   ]
 }
