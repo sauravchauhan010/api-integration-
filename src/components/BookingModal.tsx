@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, X, Loader2, CheckCircle2, AlertCircle, Clock, ExternalLink } from 'lucide-react';
+import { ShieldCheck, X, Loader2, CheckCircle2, AlertCircle, Clock, ExternalLink, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { bookingService } from '../services/api';
 import { BookingResponse } from '../types';
@@ -22,6 +22,7 @@ interface BookingModalProps {
   infantRate: number;
   startTime: string;
   timeSlotId: string;
+  contractId?: number;
 }
 
 export const BookingModal: React.FC<BookingModalProps> = ({ 
@@ -40,12 +41,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   childRate,
   infantRate,
   startTime,
-  timeSlotId
+  timeSlotId,
+  contractId
 }) => {
   const { token, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [bookingResult, setBookingResult] = useState<BookingResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [policy, setPolicy] = useState<any[]>([]);
+  const [policyLoading, setPolicyLoading] = useState(false);
   const [formData, setFormData] = useState({
     prefix: 'Mr',
     firstName: user?.name?.split(' ')[0] || '',
@@ -67,6 +71,31 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       }));
     }
   }, [user]);
+
+  // Fetch cancellation policy when modal opens
+  useEffect(() => {
+    if (isOpen && tourId && optionId && tourDate && startTime) {
+      setPolicyLoading(true);
+      const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
+      const formattedDate = tourDate.replace(/-/g, '/');
+      fetch('/api/tour-policy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId,
+          travelDate: formattedDate,
+          startTime,
+          currentDate: today,
+          contractId: contractId || transferId || 0,
+          tourOptionId: optionId
+        })
+      })
+        .then(r => r.json())
+        .then(data => setPolicy(data.result || []))
+        .catch(() => setPolicy([]))
+        .finally(() => setPolicyLoading(false));
+    }
+  }, [isOpen, tourId, optionId, tourDate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -131,20 +160,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       console.log("Booking response from server:", response);
       if (response.statuscode === 200) {
         setBookingResult(response);
-        
-        // Save to localStorage for "My Bookings" section
-        const existingBookings = JSON.parse(localStorage.getItem('rayna_bookings') || '[]');
-        const newBooking = {
-          ...response,
-          tourName,
-          optionName,
-          tourDate,
-          startTime,
-          uniqueNo: bookingData.uniqueNo,
-          bookingDate: new Date().toISOString(),
-          passengers: bookingData.passengers
-        };
-        localStorage.setItem('rayna_bookings', JSON.stringify([newBooking, ...existingBookings]));
       } else {
         setError(response.error || 'Booking failed. Please try again.');
       }
@@ -159,6 +174,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const resetAndClose = () => {
     setBookingResult(null);
     setError(null);
+    setPolicy([]);
     onClose();
   };
 
@@ -206,6 +222,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               ) : !bookingResult ? (
                 <form onSubmit={handleBooking} className="space-y-6">
+                  {/* Tour Summary + Cancellation Policy */}
                   <div className="bg-brand/5 p-6 rounded-3xl border border-brand/10 mb-8">
                     <h4 className="font-bold text-slate-900 mb-2">{tourName}</h4>
                     <div className="flex flex-wrap gap-4 text-sm text-slate-600">
@@ -213,6 +230,30 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                       <span className="flex items-center gap-1"><Clock size={14} className="text-brand" /> {startTime}</span>
                       <span className="flex items-center gap-1"><CheckCircle2 size={14} className="text-brand" /> {adults} Adult(s), {childrenCount} Child(ren), {infants} Infant(s)</span>
                       <span className="flex items-center gap-1 font-bold text-brand">Total: AED {(adults * adultRate) + (childrenCount * childRate) + (infants * infantRate)}</span>
+                    </div>
+
+                    {/* Cancellation Policy */}
+                    <div className="mt-4 pt-4 border-t border-brand/10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <ShieldAlert size={14} className="text-amber-500" />
+                        <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Cancellation Policy</span>
+                      </div>
+                      {policyLoading ? (
+                        <div className="flex items-center gap-2 text-xs text-slate-400">
+                          <Loader2 size={12} className="animate-spin" /> Loading policy...
+                        </div>
+                      ) : policy.length > 0 ? (
+                        policy.map((p: any, i: number) => (
+                          <div key={i} className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mt-1">
+                            {p.percentage === 100
+                              ? `⚠️ 100% cancellation charge from ${new Date(p.fromDate).toDateString()} to ${new Date(p.toDate).toDateString()}`
+                              : `${p.percentage}% cancellation charge from ${new Date(p.fromDate).toDateString()} to ${new Date(p.toDate).toDateString()}`
+                            }
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-400">No cancellation policy found for this tour.</p>
+                      )}
                     </div>
                   </div>
 
