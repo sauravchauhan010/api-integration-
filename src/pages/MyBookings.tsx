@@ -114,7 +114,7 @@ const MyBookings: React.FC = () => {
       });
 
       const data = await response.json();
-      if (response.ok && (data.status === 'Success' || data.result?.status === 'Success' || data.isSuccess)) {
+if (response.ok && (data.statuscode === 200 || data.result?.status === 1 || data.status === 'Success')) {
         alert('Booking cancelled successfully.');
         fetchBookings(); // Refresh list
       } else {
