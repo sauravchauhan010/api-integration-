@@ -79,8 +79,7 @@ app.post("/api/auth/register", (req, res) => {
     const stmt = db.prepare("INSERT INTO users (email, password, name, company_name, agent_name) VALUES (?, ?, ?, ?, ?)");
     const info = stmt.run(email, hashedPassword, name || agentName, companyName, agentName);
     console.log(`User registered successfully: ${email}, ID: ${info.lastInsertRowid}`);
-    const token = jwt.sign({ id: info.lastInsertRowid, email, name: name || agentName, companyName, agentName }, JWT_SECRET);
-    res.json({ token, user: { id: info.lastInsertRowid, email, name: name || agentName, companyName, agentName } });
+    res.json({ success: true, message: "Account created successfully! Please log in." });
   } catch (error: any) {
     console.error(`Registration error for ${email}:`, error.message);
     if (error.message.includes("UNIQUE constraint failed")) {
@@ -170,8 +169,29 @@ app.post("/api/auth/update-profile", (req, res) => {
   }
 });
 
+app.post("/api/auth/change-password", (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: "No token" });
+  const token = authHeader.split(" ")[1];
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
+    const { currentPassword, newPassword } = req.body;
+    const user = db.prepare("SELECT * FROM users WHERE id = ?").get(decoded.id) as any;
+    if (!user) return res.status(404).json({ error: "User not found" });
+    if (!bcrypt.compareSync(currentPassword, user.password)) {
+      return res.status(400).json({ error: "Current password is incorrect" });
+    }
+    const hashedPassword = bcrypt.hashSync(newPassword, 10);
+    db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashedPassword, decoded.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(401).json({ error: "Invalid token" });
+  }
+});
+
 // --- Tour Endpoints ---
 
+app.post("/api/tour-policy", (req, res) => proxyRequest('/api/Tour/policy', 'post', req.body, res));
 app.get("/api/countries", (req, res) => proxyRequest('/api/Tour/countries', 'get', null, res));
 app.post("/api/cities", (req, res) => proxyRequest('/api/Tour/cities', 'post', req.body, res));
 app.post("/api/tours", (req, res) => proxyRequest('/api/Tour/tourstaticdata', 'post', req.body, res));
@@ -327,7 +347,6 @@ if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
   });
 } else {
   // On Vercel, we just need the routes, Vite is handled by static build
-  // But we still need to handle the SPA fallback if the static build doesn't
 }
 
 export default app;
