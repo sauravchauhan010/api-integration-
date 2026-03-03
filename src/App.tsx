@@ -27,7 +27,7 @@ const ScrollToTop = () => {
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-8 right-8 z-50 w-12 h-12 bg-slate-900 hover:bg-slate-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
+      className="fixed bottom-8 right-8 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
     >
       <ChevronUp size={22} />
     </button>
