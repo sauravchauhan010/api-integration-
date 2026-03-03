@@ -106,11 +106,11 @@ const MyBookings: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({
-          bookingId: Number(booking.rayna_booking_id),
-          referenceNo: booking.reference_no,
-          remark: "Cancelled by user via B2B portal"
-        })
+       body: JSON.stringify({
+  bookingId: String(booking.rayna_booking_id),
+  referenceNo: booking.reference_no,
+  cancellationReason: "testing"
+})
       });
 
       const data = await response.json();
