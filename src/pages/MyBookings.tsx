@@ -37,7 +37,7 @@ const CancellationPolicySection: React.FC<{ booking: Booking }> = ({ booking }) 
         travelDate,
         startTime: '00:00:00',
         currentDate: today,
-        contractId: 0,
+        contractId: 300,
         tourOptionId: 0
       })
     })
