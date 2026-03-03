@@ -1,21 +1,28 @@
-import React from 'react';
-import { Phone, Globe, Menu, ShoppingCart, Bell, ChevronDown, Ticket, LogOut, User as UserIcon } from 'lucide-react';
+import React, { useState } from 'react';
+import { Phone, Globe, Menu, X, ChevronDown, Ticket, LogOut, User as UserIcon } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+    setMobileOpen(false);
+  };
 
   return (
     <nav className="bg-white/90 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-[100] shadow-sm">
-      <div className="max-w-full mx-auto px-8">
+      <div className="max-w-full mx-auto px-4 md:px-8">
         <div className="flex justify-between h-20 items-center">
           {/* Logo & Main Nav */}
           <div className="flex items-center gap-12">
-            <Link to="/dashboard" className="flex items-center cursor-pointer group">
+            <Link to="/dashboard" className="flex items-center cursor-pointer group" onClick={() => setMobileOpen(false)}>
               <img 
-                src="https://i.ibb.co/3yjpZ6g6/q.png" 
+                src="https://picsum.photos/seed/travel-b2b-logo/400/120" 
                 alt="Rayna B2B" 
                 className="h-14 w-auto object-contain"
                 referrerPolicy="no-referrer"
@@ -35,7 +42,7 @@ export const Navbar = () => {
             </div>
           </div>
 
-          {/* Right Side Nav */}
+          {/* Right Side Nav - Desktop */}
           <div className="hidden lg:flex items-center gap-6">
             <div className="flex items-center gap-6 mr-6 border-r border-slate-200 pr-6">
               <div className="flex flex-col items-end">
@@ -91,15 +98,13 @@ export const Navbar = () => {
                   </div>
                 </Link>
                 
-                <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => { logout(); navigate('/'); }}
-                    className="p-2.5 text-slate-400 hover:text-red-500 transition-colors hover:bg-red-50 rounded-xl"
-                    title="Logout"
-                  >
-                    <LogOut size={20} />
-                  </button>
-                </div>
+                <button 
+                  onClick={handleLogout}
+                  className="p-2.5 text-slate-400 hover:text-red-500 transition-colors hover:bg-red-50 rounded-xl"
+                  title="Logout"
+                >
+                  <LogOut size={20} />
+                </button>
               </div>
             ) : (
               <div className="flex items-center gap-4">
@@ -115,12 +120,100 @@ export const Navbar = () => {
 
           {/* Mobile Menu Button */}
           <div className="lg:hidden">
-            <button className="p-3 text-slate-600 hover:bg-slate-50 rounded-xl">
-              <Menu size={24} />
+            <button
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="p-3 text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
+            >
+              {mobileOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileOpen && (
+        <div className="lg:hidden bg-white border-t border-slate-100 shadow-xl">
+          <div className="px-4 py-6 space-y-2">
+
+            {/* User Info */}
+            {user && (
+              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl mb-4">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center overflow-hidden">
+                  {user.logoUrl ? (
+                    <img src={user.logoUrl} alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  ) : (
+                    <UserIcon size={22} />
+                  )}
+                </div>
+                <div>
+                  <p className="font-bold text-slate-900">{user.companyName || user.name}</p>
+                  <p className="text-xs text-emerald-600 font-bold uppercase tracking-wider">Partner Account</p>
+                </div>
+              </div>
+            )}
+
+            {/* Nav Links */}
+            <Link
+              to={`/results?cityId=1&date=${new Date().toISOString().split('T')[0]}&adults=1&children=0&infants=0`}
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+            >
+              🌍 Tours & Sightseeing
+            </Link>
+
+            <Link
+              to="/my-bookings"
+              onClick={() => setMobileOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+            >
+              🎫 My Bookings
+            </Link>
+
+            {user && (
+              <Link
+                to="/profile"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-700 font-semibold hover:bg-slate-50 transition-colors"
+              >
+                👤 My Profile
+              </Link>
+            )}
+
+            {/* Support */}
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-500 text-sm">
+              📞 24/7 Support: +971 4 208 7444
+            </div>
+
+            <div className="border-t border-slate-100 pt-4 mt-4">
+              {user ? (
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 font-semibold hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={18} /> Logout
+                </button>
+              ) : (
+                <div className="space-y-3">
+                  <Link
+                    to="/login"
+                    onClick={() => setMobileOpen(false)}
+                    className="block w-full text-center px-4 py-3 rounded-xl border border-slate-200 text-slate-900 font-bold hover:bg-slate-50 transition-colors"
+                  >
+                    Sign In
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setMobileOpen(false)}
+                    className="block w-full text-center px-4 py-3 rounded-xl bg-brand text-white font-bold hover:bg-brand-dark transition-colors"
+                  >
+                    Register Now
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
