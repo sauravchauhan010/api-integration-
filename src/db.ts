@@ -1,81 +1,52 @@
-import Database from 'better-sqlite3';
-import path from 'path';
+// In-memory database for WebContainer/StackBlitz compatibility
+let userIdCounter = 1;
+let bookingIdCounter = 1;
 
-let db: any;
-try {
-  db = new Database('database.db');
-  console.log("Database initialized at database.db");
-} catch (error: any) {
-  console.error("CRITICAL: Failed to initialize database:", error.message);
-  // Fallback to a mock or handle gracefully
-  db = {
-    exec: () => console.warn("Mock DB: exec called"),
-    prepare: () => ({
-      run: () => ({ lastInsertRowid: 0 }),
-      get: () => null,
-      all: () => []
-    })
-  };
-}
+const users: any[] = [];
+const bookings: any[] = [];
 
-// Initialize tables
-if (db.exec) {
-  try {
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        name TEXT NOT NULL,
-        company_name TEXT,
-        agent_name TEXT,
-        logo_url TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE TABLE IF NOT EXISTS bookings (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        rayna_booking_id TEXT NOT NULL,
-        tour_name TEXT NOT NULL,
-        option_name TEXT, -- Added option name
-        reference_no TEXT, -- Added reference number
-        tour_id INTEGER NOT NULL,
-        booking_date TEXT NOT NULL,
-        travel_date TEXT NOT NULL,
-        total_amount REAL NOT NULL,
-        status TEXT NOT NULL,
-        pax_details TEXT NOT NULL, -- JSON string
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id)
-      );
-    `);
-    
-    // Try to add the column if it doesn't exist (for existing databases)
-    try {
-      db.exec("ALTER TABLE bookings ADD COLUMN option_name TEXT;");
-      console.log("Added option_name column to bookings table");
-    } catch (e) {}
-
-    try {
-      db.exec("ALTER TABLE bookings ADD COLUMN reference_no TEXT;");
-      console.log("Added reference_no column to bookings table");
-    } catch (e) {}
-
-    try {
-      db.exec("ALTER TABLE users ADD COLUMN company_name TEXT;");
-    } catch (e) {}
-    try {
-      db.exec("ALTER TABLE users ADD COLUMN agent_name TEXT;");
-    } catch (e) {}
-    try {
-      db.exec("ALTER TABLE users ADD COLUMN logo_url TEXT;");
-    } catch (e) {}
-    
-    console.log("Database tables verified/created");
-  } catch (error: any) {
-    console.error("CRITICAL: Failed to create tables:", error.message);
-  }
-}
+const db = {
+  exec: (_sql: string) => {},
+  prepare: (sql: string) => ({
+    run: (...params: any[]) => {
+      if (sql.includes('INSERT INTO users')) {
+        const id = userIdCounter++;
+        users.push({
+          id, email: params[0], password: params[1],
+          name: params[2], company_name: params[3], agent_name: params[4],
+          logo_url: null, created_at: new Date().toISOString()
+        });
+        return { lastInsertRowid: id };
+      }
+      if (sql.includes('INSERT INTO bookings')) {
+        const id = bookingIdCounter++;
+        bookings.push({ id, user_id: params[0], rayna_booking_id: params[1], reference_no: params[2], tour_name: params[3], option_name: params[4], tour_id: params[5], booking_date: params[6], travel_date: params[7], total_amount: params[8], status: params[9], pax_details: params[10] });
+        return { lastInsertRowid: id };
+      }
+      if (sql.includes('UPDATE users')) {
+        const u = users.find(u => u.id === params[3]);
+        if (u) { u.company_name = params[0]; u.agent_name = params[1]; u.logo_url = params[2]; }
+        return {};
+      }
+      if (sql.includes("UPDATE bookings SET status")) {
+        const b = bookings.find(b => b.rayna_booking_id === params[0] && b.user_id === params[1]);
+        if (b) b.status = 'Cancelled';
+        return {};
+      }
+      return {};
+    },
+    get: (...params: any[]) => {
+      if (sql.includes('SELECT * FROM users WHERE email')) return users.find(u => u.email === params[0]) || null;
+      if (sql.includes('SELECT * FROM users WHERE id') || sql.includes('SELECT id, email')) return users.find(u => u.id === params[0]) || null;
+      if (sql.includes('COUNT(*) as count FROM users')) return { count: users.length };
+      if (sql.includes('COUNT(*) as count FROM bookings')) return { count: bookings.length };
+      return null;
+    },
+    all: (...params: any[]) => {
+      if (sql.includes('SELECT * FROM bookings WHERE user_id')) return bookings.filter(b => b.user_id === params[0]);
+      return [];
+    }
+  })
+};
 
 export default db;
