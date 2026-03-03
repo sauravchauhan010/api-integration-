@@ -86,7 +86,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           travelDate: formattedDate,
           startTime,
           currentDate: today,
-          contractId: contractId || transferId || 0,
+          contractId: 300,
           tourOptionId: optionId
         })
       })
