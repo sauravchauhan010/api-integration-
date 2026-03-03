@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, MapPin, Ticket, Clock, ChevronRight, Loader2, AlertCircle, X, Search, Filter, Trash2, User as UserIcon } from 'lucide-react';
+import { Calendar, MapPin, Ticket, Clock, ChevronRight, Loader2, AlertCircle, X, Search, Filter, User as UserIcon, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -18,6 +18,60 @@ interface Booking {
   status: string;
   pax_details: string;
 }
+
+// Cancellation Policy component shown inside booking details modal
+const CancellationPolicySection: React.FC<{ booking: Booking }> = ({ booking }) => {
+  const [policy, setPolicy] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!booking.tour_id || !booking.travel_date) return;
+    setLoading(true);
+    const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
+    const travelDate = booking.travel_date.replace(/-/g, '/');
+    fetch('/api/tour-policy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tourId: booking.tour_id,
+        travelDate,
+        startTime: '00:00:00',
+        currentDate: today,
+        contractId: 0,
+        tourOptionId: 0
+      })
+    })
+      .then(r => r.json())
+      .then(data => setPolicy(data.result || []))
+      .catch(() => setPolicy([]))
+      .finally(() => setLoading(false));
+  }, [booking.id]);
+
+  return (
+    <div className="mt-4 pt-4 border-t border-slate-100">
+      <div className="flex items-center gap-2 mb-2">
+        <ShieldAlert size={14} className="text-amber-500" />
+        <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Cancellation Policy</span>
+      </div>
+      {loading ? (
+        <div className="flex items-center gap-2 text-xs text-slate-400">
+          <Loader2 size={12} className="animate-spin" /> Loading policy...
+        </div>
+      ) : policy.length > 0 ? (
+        policy.map((p: any, i: number) => (
+          <div key={i} className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mt-1">
+            {p.percentage === 100
+              ? `⚠️ 100% cancellation charge: ${new Date(p.fromDate).toDateString()} → ${new Date(p.toDate).toDateString()}`
+              : `${p.percentage}% cancellation charge: ${new Date(p.fromDate).toDateString()} → ${new Date(p.toDate).toDateString()}`
+            }
+          </div>
+        ))
+      ) : (
+        <p className="text-xs text-slate-400">No cancellation policy available.</p>
+      )}
+    </div>
+  );
+};
 
 const MyBookings: React.FC = () => {
   const { token, user } = useAuth();
@@ -68,11 +122,11 @@ const MyBookings: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          uniqNO: Date.now(), // Random unique number as required by Rayna
+          uniqNO: Date.now(),
           referenceNo: booking.reference_no,
           bookedOption: [
             {
-              serviceUniqueId: "1", // This is usually 1 for single service bookings
+              serviceUniqueId: "1",
               bookingId: Number(booking.rayna_booking_id)
             }
           ]
@@ -106,17 +160,17 @@ const MyBookings: React.FC = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-       body: JSON.stringify({
-  bookingId: String(booking.rayna_booking_id),
-  referenceNo: booking.reference_no,
-  cancellationReason: "testing"
-})
+        body: JSON.stringify({
+          bookingId: String(booking.rayna_booking_id),
+          referenceNo: booking.reference_no,
+          cancellationReason: "Cancelled by user via B2B portal"
+        })
       });
 
       const data = await response.json();
-if (response.ok && (data.statuscode === 200 || data.result?.status === 1 || data.status === 'Success')) {
+      if (response.ok && (data.statuscode === 200 || data.result?.status === 1 || data.status === 'Success')) {
         alert('Booking cancelled successfully.');
-        fetchBookings(); // Refresh list
+        fetchBookings();
       } else {
         alert(data.message || data.error || 'Failed to cancel booking. It might be too close to the travel date.');
       }
@@ -375,6 +429,8 @@ if (response.ok && (data.statuscode === 200 || data.result?.status === 1 || data
                       <span className="text-slate-500">Amount Paid</span>
                       <span className="font-bold text-slate-900">AED {selectedBooking.total_amount.toFixed(2)}</span>
                     </div>
+                    {/* Cancellation Policy inside details modal */}
+                    <CancellationPolicySection booking={selectedBooking} />
                   </div>
                 </div>
 
