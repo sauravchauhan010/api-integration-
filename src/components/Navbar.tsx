@@ -22,7 +22,7 @@ export const Navbar = () => {
           <div className="flex items-center gap-12">
             <Link to="/dashboard" className="flex items-center cursor-pointer group" onClick={() => setMobileOpen(false)}>
               <img 
-                src="https://picsum.photos/seed/travel-b2b-logo/400/120" 
+                src="https://i.ibb.co/3yjpZ6g6/q.png" 
                 alt="Rayna B2B" 
                 className="h-14 w-auto object-contain"
                 referrerPolicy="no-referrer"
