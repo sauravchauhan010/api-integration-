@@ -15,7 +15,7 @@ export const Navbar = () => {
           <div className="flex items-center gap-12">
             <Link to="/dashboard" className="flex items-center cursor-pointer group">
               <img 
-                src="https://picsum.photos/seed/travel-b2b-logo/400/120" 
+                src="https://d1i3enf1i5tb1f.cloudfront.net/assets/Images/AGT-31082/logo.png" 
                 alt="Rayna B2B" 
                 className="h-14 w-auto object-contain"
                 referrerPolicy="no-referrer"
