@@ -1,100 +1,126 @@
 import React from 'react';
-import { Phone, Globe, Menu, ShoppingCart, Bell, ChevronDown, Ticket } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Phone, Globe, Menu, ShoppingCart, Bell, ChevronDown, Ticket, LogOut, User as UserIcon } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 export const Navbar = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
   return (
-    <nav className="bg-white/80 backdrop-blur-md border-b border-slate-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 items-center">
-          {/* Logo */}
-          <div className="flex items-center gap-8">
-            <Link to="/" className="flex flex-col cursor-pointer">
-              <span className="text-2xl font-display font-bold tracking-tight text-slate-900">
-                RAYNA<span className="text-brand ml-0.5">B2B</span>
-              </span>
-              <div className="flex gap-1 mt-[-2px]">
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full"></div>
-                <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
-                <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-              </div>
+    <nav className="bg-white/90 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-[100] shadow-sm">
+      <div className="max-w-full mx-auto px-8">
+        <div className="flex justify-between h-20 items-center">
+          {/* Logo & Main Nav */}
+          <div className="flex items-center gap-12">
+            <Link to="/dashboard" className="flex items-center cursor-pointer group">
+              <img 
+                src="https://picsum.photos/seed/travel-b2b-logo/400/120" 
+                alt="Rayna B2B" 
+                className="h-14 w-auto object-contain"
+                referrerPolicy="no-referrer"
+              />
             </Link>
             
-            <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-              <a href="#" className="hover:text-brand transition-colors">Destinations</a>
-              <a href="#" className="hover:text-brand transition-colors">Offers</a>
-              <Link to="/my-bookings" className="hover:text-brand transition-colors">My Bookings</Link>
-              <a href="#" className="hover:text-brand transition-colors">Support</a>
+            <div className="hidden xl:flex items-center gap-8 text-sm font-bold text-slate-500 uppercase tracking-widest">
+              <Link 
+                to={`/results?cityId=1&date=${new Date().toISOString().split('T')[0]}&adults=1&children=0&infants=0`} 
+                className="hover:text-brand transition-colors flex items-center gap-2"
+              >
+                Tours & Sightseeing
+              </Link>
+              <Link to="/my-bookings" className="hover:text-brand transition-colors flex items-center gap-2">
+                <Ticket size={16} /> My Bookings
+              </Link>
             </div>
           </div>
 
           {/* Right Side Nav */}
-          <div className="hidden lg:flex items-center gap-4">
-            <div className="flex items-center gap-4 mr-4 border-r border-slate-200 pr-4">
-              <div className="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-slate-600 hover:text-brand">
-                <Phone size={14} />
-                <span>Helpline</span>
+          <div className="hidden lg:flex items-center gap-6">
+            <div className="flex items-center gap-6 mr-6 border-r border-slate-200 pr-6">
+              <div className="flex flex-col items-end">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">24/7 Support</span>
+                <span className="text-sm font-bold text-slate-900">+971 4 208 7444</span>
               </div>
-              <div className="flex items-center gap-1.5 cursor-pointer text-sm font-medium text-slate-600 hover:text-brand">
-                <Globe size={14} />
-                <span>EN</span>
+              
+              <div className="flex items-center gap-4">
+                {/* Language Switcher */}
+                <div className="relative group/lang">
+                  <div className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors">
+                    <Globe size={14} className="text-brand" />
+                    <span className="text-xs font-bold text-slate-600">EN</span>
+                    <ChevronDown size={12} className="text-slate-400" />
+                  </div>
+                  <div className="absolute top-full right-0 mt-2 w-32 bg-white rounded-xl shadow-xl border border-slate-100 py-2 opacity-0 invisible group-hover/lang:opacity-100 group-hover/lang:visible transition-all z-50">
+                    <button className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-brand">English</button>
+                    <button className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-brand">Hindi (हिंदी)</button>
+                    <button className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-brand">Spanish (Español)</button>
+                  </div>
+                </div>
+
+                {/* Currency Switcher */}
+                <div className="relative group/curr">
+                  <div className="flex items-center gap-2 cursor-pointer bg-slate-50 px-3 py-1.5 rounded-full hover:bg-slate-100 transition-colors">
+                    <span className="text-xs font-bold text-brand">AED</span>
+                    <ChevronDown size={12} className="text-slate-400" />
+                  </div>
+                  <div className="absolute top-full right-0 mt-2 w-24 bg-white rounded-xl shadow-xl border border-slate-100 py-2 opacity-0 invisible group-hover/curr:opacity-100 group-hover/curr:visible transition-all z-50">
+                    <button className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-brand">AED</button>
+                    <button className="w-full text-left px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-brand">INR</button>
+                  </div>
+                </div>
               </div>
             </div>
-            <button className="text-slate-900 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors">
-              Sign In
-            </button>
-            <button className="bg-brand text-white px-5 py-2 rounded-lg text-sm font-semibold hover:bg-brand-dark transition-all shadow-lg shadow-brand/20">
-              Register Now
-            </button>
+            
+            {user ? (
+              <div className="flex items-center gap-6">
+                <Link to="/profile" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
+                  <div className="relative cursor-pointer group">
+                    <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors overflow-hidden">
+                      {user.logoUrl ? (
+                        <img src={user.logoUrl} alt="Logo" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      ) : (
+                        <UserIcon size={20} />
+                      )}
+                    </div>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-brand border-2 border-white rounded-full"></div>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-bold text-slate-900">{user.companyName || user.name}</span>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Partner Account</span>
+                  </div>
+                </Link>
+                
+                <div className="flex items-center gap-2">
+                  <button 
+                    onClick={() => { logout(); navigate('/'); }}
+                    className="p-2.5 text-slate-400 hover:text-red-500 transition-colors hover:bg-red-50 rounded-xl"
+                    title="Logout"
+                  >
+                    <LogOut size={20} />
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <Link to="/login" className="text-slate-900 px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-slate-50 transition-colors">
+                  Sign In
+                </Link>
+                <Link to="/register" className="bg-brand text-white px-8 py-3 rounded-xl text-sm font-bold hover:bg-brand-dark transition-all shadow-xl shadow-brand/20">
+                  Register Now
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
           <div className="lg:hidden">
-            <button className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg">
+            <button className="p-3 text-slate-600 hover:bg-slate-50 rounded-xl">
               <Menu size={24} />
             </button>
           </div>
         </div>
       </div>
     </nav>
-  );
-};
-
-export const DashboardNavbar = () => {
-  return (
-    <div className="bg-white border-b border-slate-200 py-3">
-      <div className="max-w-7xl mx-auto px-4 flex justify-between items-center text-xs font-bold text-slate-500">
-        <div className="flex items-center gap-6">
-          <Link to="/my-bookings" className="hover:text-brand cursor-pointer flex items-center gap-1.5">
-            <Ticket size={14} className="text-brand" /> My Bookings
-          </Link>
-          <span className="flex items-center gap-1.5"><Phone size={14} className="text-brand" /> 24/7 Support</span>
-          <span className="flex items-center gap-1.5"><Globe size={14} className="text-brand" /> English (AED)</span>
-          <button className="bg-brand text-white px-4 py-1.5 rounded-full flex items-center gap-2 hover:bg-brand-dark transition-all">
-            Quick Services <ChevronDown size={12} />
-          </button>
-        </div>
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4 border-r border-slate-200 pr-6">
-            <span className="hover:text-brand cursor-pointer">R Points: <span className="text-slate-900">1,250</span></span>
-            <span className="hover:text-brand cursor-pointer">Credit: <span className="text-slate-900">AED 50k</span></span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5 text-slate-900">AGT-50660 <ChevronDown size={12} /></span>
-            <div className="flex items-center gap-3">
-              <div className="relative p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
-                <Bell size={18} />
-                <span className="absolute top-1.5 right-1.5 bg-brand text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 border-white">3</span>
-              </div>
-              <div className="relative p-2 hover:bg-slate-100 rounded-full transition-colors cursor-pointer">
-                <ShoppingCart size={18} />
-                <span className="absolute top-1.5 right-1.5 bg-brand text-white text-[8px] w-3.5 h-3.5 rounded-full flex items-center justify-center border-2 border-white">1</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 };

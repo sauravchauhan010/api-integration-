@@ -4,7 +4,6 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { tourService } from '../services/api';
 import { City } from '../types';
-import { DashboardNavbar } from '../components/Navbar';
 
 export const Dashboard = () => {
   const navigate = useNavigate();
@@ -12,6 +11,13 @@ export const Dashboard = () => {
   const [loadingCities, setLoadingCities] = useState(false);
   const [selectedCityId, setSelectedCityId] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [adults, setAdults] = useState(1);
+  const [children, setChildren] = useState(0);
+  const [infants, setInfants] = useState(0);
+  const [showPaxDropdown, setShowPaxDropdown] = useState(false);
+
+  const totalPax = adults + children + infants;
+  const MAX_PAX = 500;
 
   useEffect(() => {
     const loadCities = async () => {
@@ -34,12 +40,11 @@ export const Dashboard = () => {
       alert('Please select a destination first');
       return;
     }
-    navigate(`/results?cityId=${selectedCityId}&date=${selectedDate}`);
+    navigate(`/results?cityId=${selectedCityId}&date=${selectedDate}&adults=${adults}&children=${children}&infants=${infants}`);
   };
 
   return (
     <div className="bg-slate-50 min-h-screen">
-      <DashboardNavbar />
 
       {/* Hero Section */}
       <div className="relative h-[500px] overflow-hidden">
@@ -51,7 +56,7 @@ export const Dashboard = () => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent"></div>
         <div className="absolute inset-0 flex items-center">
-          <div className="max-w-7xl mx-auto px-4 w-full">
+          <div className="max-w-full mx-auto px-8 w-full">
             <motion.div 
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -76,7 +81,7 @@ export const Dashboard = () => {
       </div>
 
       {/* Modern Search Interface */}
-      <div className="max-w-7xl mx-auto px-4 -mt-24 relative z-20">
+      <div className="max-w-full mx-auto px-8 -mt-24 relative z-30 sticky top-[49px]">
         <div className="bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100">
           {/* Tabs */}
           <div className="flex bg-slate-50 p-2 gap-1">
@@ -128,17 +133,81 @@ export const Dashboard = () => {
                 />
               </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 relative">
               <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Travelers</label>
-              <div className="relative group">
+              <div 
+                className="relative group cursor-pointer"
+                onClick={() => setShowPaxDropdown(!showPaxDropdown)}
+              >
                 <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-brand transition-colors" size={18} />
-                <select className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl focus:outline-none focus:ring-2 focus:ring-brand/10 focus:border-brand transition-all appearance-none">
-                  <option>1 Adult, 0 Child</option>
-                  <option>2 Adults, 1 Child</option>
-                  <option>Family Group</option>
-                </select>
+                <div className="w-full pl-12 pr-10 py-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium text-slate-700">
+                  {adults} Adult, {children} Child, {infants} Infant
+                </div>
                 <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               </div>
+
+              {showPaxDropdown && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 z-50 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">Adults</p>
+                      <p className="text-[10px] text-slate-400">Age 12+</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setAdults(Math.max(1, adults - 1)) }}
+                        className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand transition-colors"
+                      >-</button>
+                      <span className="font-bold w-6 text-center">{adults}</span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); if(totalPax < MAX_PAX) setAdults(adults + 1) }}
+                        className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand transition-colors"
+                      >+</button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">Children</p>
+                      <p className="text-[10px] text-slate-400">Age 2-11</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setChildren(Math.max(0, children - 1)) }}
+                        className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand transition-colors"
+                      >-</button>
+                      <span className="font-bold w-6 text-center">{children}</span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); if(totalPax < MAX_PAX) setChildren(children + 1) }}
+                        className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand transition-colors"
+                      >+</button>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-slate-900">Infants</p>
+                      <p className="text-[10px] text-slate-400">Under 2</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setInfants(Math.max(0, infants - 1)) }}
+                        className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand transition-colors"
+                      >-</button>
+                      <span className="font-bold w-6 text-center">{infants}</span>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); if(totalPax < MAX_PAX) setInfants(infants + 1) }}
+                        className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand transition-colors"
+                      >+</button>
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Max 500 Pax</p>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setShowPaxDropdown(false) }}
+                      className="text-brand font-bold text-sm"
+                    >Done</button>
+                  </div>
+                </div>
+              )}
             </div>
             <button 
               onClick={handleSearch}
@@ -151,7 +220,7 @@ export const Dashboard = () => {
       </div>
 
       {/* Featured Destinations */}
-      <section className="max-w-7xl mx-auto px-4 py-24">
+      <section className="max-w-full mx-auto px-8 py-24">
         <div className="flex justify-between items-end mb-12">
           <div>
             <h2 className="text-4xl font-display font-bold text-slate-900 mb-2">Popular Experiences</h2>

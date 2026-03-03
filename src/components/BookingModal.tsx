@@ -1,13 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ShieldCheck, X, Loader2, CheckCircle2, AlertCircle, Clock, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { bookingService } from '../services/api';
-import { BookingRequest, BookingResponse } from '../types';
+import { BookingResponse } from '../types';
+import { useAuth } from '../context/AuthContext';
 
 interface BookingModalProps {
   isOpen: boolean;
   onClose: () => void;
   tourName: string;
+  optionName: string;
   tourId: number;
   optionId: number;
   transferId: number;
@@ -26,6 +28,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   isOpen, 
   onClose, 
   tourName,
+  optionName,
   tourId,
   optionId,
   transferId,
@@ -39,18 +42,31 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   startTime,
   timeSlotId
 }) => {
+  const { token, user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [bookingResult, setBookingResult] = useState<BookingResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     prefix: 'Mr',
-    firstName: '',
-    lastName: '',
-    email: '',
+    firstName: user?.name?.split(' ')[0] || '',
+    lastName: user?.name?.split(' ')[1] || '',
+    email: user?.email || '',
     mobile: '',
     nationality: 'IN',
     message: ''
   });
+
+  // Update form data when user changes
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: user.name?.split(' ')[0] || prev.firstName,
+        lastName: user.name?.split(' ')[1] || prev.lastName,
+        email: user.email || prev.email
+      }));
+    }
+  }, [user]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -62,11 +78,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setLoading(true);
     setError(null);
 
-    const serviceTotal = ((adults * adultRate) + (childrenCount * childRate) + (infants * infantRate)).toFixed(6);
-    const uniqueNo = (Math.floor(Math.random() * 900000) + 100000).toString();
-    const serviceUniqueId = Math.floor(Math.random() * 900000) + 100000;
+    const serviceTotal = ((adults * adultRate) + (childrenCount * childRate) + (infants * infantRate)).toFixed(2);
+    const uniqueNo = "B2B" + Date.now() + Math.floor(Math.random() * 1000);
+    const serviceUniqueId = Math.floor(Math.random() * 1000000);
 
-    const bookingData: BookingRequest = {
+    const bookingData: any = {
       uniqueNo,
       TourDetails: [{
         serviceUniqueId,
@@ -82,6 +98,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         pickup: 'TBA',
         adultRate,
         childRate,
+        infantRate,
         serviceTotal
       }],
       passengers: [{
@@ -92,15 +109,26 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         email: formData.email,
         mobile: formData.mobile,
         nationality: formData.nationality,
-        message: formData.message || 'undefined',
+        message: formData.message || '',
         leadPassenger: 1,
         paxType: 'Adult',
-        clientReferenceNo: Math.random().toString(36).substring(2, 10).toUpperCase()
-      }]
+        clientReferenceNo: "REF" + Date.now()
+      }],
+      localDetails: {
+        tourName,
+        optionName,
+        tourId,
+        travelDate: tourDate,
+        totalAmount: Number(serviceTotal),
+        paxDetails: { adults, children: childrenCount, infants }
+      }
     };
 
+    console.log("Initiating booking with data:", bookingData);
+
     try {
-      const response = await bookingService.createBooking(bookingData);
+      const response = await bookingService.createBooking(bookingData, token || undefined);
+      console.log("Booking response from server:", response);
       if (response.statuscode === 200) {
         setBookingResult(response);
         
@@ -109,10 +137,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const newBooking = {
           ...response,
           tourName,
+          optionName,
           tourDate,
           startTime,
           uniqueNo: bookingData.uniqueNo,
-          bookingDate: new Date().toISOString()
+          bookingDate: new Date().toISOString(),
+          passengers: bookingData.passengers
         };
         localStorage.setItem('rayna_bookings', JSON.stringify([newBooking, ...existingBookings]));
       } else {
@@ -160,7 +190,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
 
             <div className="overflow-y-auto p-8">
-              {!bookingResult ? (
+              {!user ? (
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 bg-brand/10 text-brand rounded-full flex items-center justify-center mx-auto mb-6">
+                    <AlertCircle size={32} />
+                  </div>
+                  <h4 className="text-xl font-bold text-slate-900 mb-2">Login Required</h4>
+                  <p className="text-slate-500 mb-8">You need to be logged in to complete your booking.</p>
+                  <a 
+                    href="/login" 
+                    className="inline-block bg-brand text-white px-8 py-3 rounded-xl font-bold hover:bg-brand-dark transition-all"
+                  >
+                    Go to Login
+                  </a>
+                </div>
+              ) : !bookingResult ? (
                 <form onSubmit={handleBooking} className="space-y-6">
                   <div className="bg-brand/5 p-6 rounded-3xl border border-brand/10 mb-8">
                     <h4 className="font-bold text-slate-900 mb-2">{tourName}</h4>

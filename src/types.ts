@@ -194,6 +194,7 @@ export interface BookingRequest {
     pickup: string;
     adultRate: number;
     childRate: number;
+    infantRate: number;
     serviceTotal: string;
   }[];
   passengers: {

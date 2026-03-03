@@ -26,7 +26,7 @@ export const Home = () => {
           <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/40 to-transparent"></div>
         </div>
 
-        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full grid lg:grid-cols-2 gap-12 items-center py-20">
+        <div className="relative z-10 max-w-full mx-auto px-8 w-full grid lg:grid-cols-2 gap-12 items-center py-20">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -113,7 +113,7 @@ export const Home = () => {
       </div>
       
       {/* Notifications Section */}
-      <section className="max-w-7xl mx-auto px-4 py-24">
+      <section className="max-w-full mx-auto px-8 py-24">
         <div className="flex justify-between items-end mb-12">
           <div>
             <h2 className="text-4xl font-display font-bold text-slate-900 mb-2">Latest Updates</h2>
@@ -168,7 +168,7 @@ export const Home = () => {
 
       {/* Why Choose Us */}
       <section className="bg-slate-50 py-24">
-        <div className="max-w-7xl mx-auto px-4">
+        <div className="max-w-full mx-auto px-8">
           <div className="text-center max-w-2xl mx-auto mb-16">
             <h2 className="text-4xl font-display font-bold text-slate-900 mb-4">Why Partner With Us?</h2>
             <p className="text-slate-500">We provide the tools and rates you need to scale your travel business successfully.</p>

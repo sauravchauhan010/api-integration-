@@ -57,8 +57,10 @@ export const tourService = {
     return response.data.result;
   },
 
-  createBooking: async (bookingData: BookingRequest): Promise<BookingResponse> => {
-    const response = await api.post('/bookings', bookingData);
+  createBooking: async (bookingData: any, token?: string): Promise<BookingResponse> => {
+    const response = await api.post('/bookings', bookingData, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
     return response.data;
   },
 
@@ -108,8 +110,10 @@ export const tourService = {
 };
 
 export const bookingService = {
-  createBooking: async (bookingData: BookingRequest): Promise<BookingResponse> => {
-    const response = await api.post('/bookings', bookingData);
+  createBooking: async (bookingData: any, token?: string): Promise<BookingResponse> => {
+    const response = await api.post('/bookings', bookingData, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+    });
     return response.data;
   },
 

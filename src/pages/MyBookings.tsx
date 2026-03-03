@@ -1,397 +1,449 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Ticket, Download, Calendar, Clock, Hash, ExternalLink, Loader2, AlertCircle, ChevronRight, X, Trash2, CheckCircle2 } from 'lucide-react';
-import { bookingService } from '../services/api';
-import { DashboardNavbar } from '../components/Navbar';
-import { BookingResponse } from '../types';
-import { AnimatePresence } from 'motion/react';
+import { useAuth } from '../context/AuthContext';
+import { Calendar, MapPin, Ticket, Clock, ChevronRight, Loader2, AlertCircle, X, Search, Filter, Trash2, User as UserIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 
-interface SavedBooking extends BookingResponse {
-  tourName: string;
-  tourDate: string;
-  startTime: string;
-  uniqueNo: string;
-  bookingDate: string;
+interface Booking {
+  id: number;
+  rayna_booking_id: string;
+  reference_no: string;
+  tour_name: string;
+  option_name: string;
+  tour_id: number;
+  booking_date: string;
+  travel_date: string;
+  total_amount: number;
+  status: string;
+  pax_details: string;
 }
 
-export const MyBookings = () => {
-  const [bookings, setBookings] = useState<SavedBooking[]>([]);
-  const [downloading, setDownloading] = useState<number | null>(null);
-  const [cancelling, setCancelling] = useState<number | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+const MyBookings: React.FC = () => {
+  const { token, user } = useAuth();
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   
-  // Cancellation Modal State
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelData, setCancelData] = useState<{
-    bookingId: number;
-    referenceNo: string;
-    tourName: string;
-  } | null>(null);
-  const [cancelReason, setCancelReason] = useState('Customer request');
+  // Filters
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
-  useEffect(() => {
-    const saved = localStorage.getItem('rayna_bookings');
-    if (saved) {
-      setBookings(JSON.parse(saved));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
-  const handleDownloadTicket = async (booking: SavedBooking, detail: any) => {
-    // Check all possible locations for ticketURL
-    const directTicketUrl = detail.ticketURL || booking.result.ticketURL;
-    
-    if (directTicketUrl) {
-      const link = document.createElement('a');
-      link.href = directTicketUrl;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return;
-    }
-
-    setDownloading(detail.bookingId);
-    setError(null);
-    setSuccess(null);
-
+  const fetchBookings = async () => {
+    if (!token) return;
+    setLoading(true);
     try {
-      const response = await bookingService.getBookedTickets({
-        uniqNO: Number(booking.uniqueNo) || 123456,
-        referenceNo: booking.result.referenceNo,
-        bookedOption: [{
-          serviceUniqueId: detail.serviceUniqueId,
-          bookingId: detail.bookingId
-        }]
+      const response = await fetch('/api/my-bookings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
 
-      const ticketUrl = response.url || 
-                        response.ticketURL || 
-                        (Array.isArray(response.result) ? response.result[0]?.ticketURL : response.result?.ticketURL);
-
-      if (response.statuscode === 200 && ticketUrl) {
-        // Create a temporary link and click it to trigger download/open
-        const link = document.createElement('a');
-        link.href = ticketUrl;
-        link.target = '_blank';
-        link.rel = 'noopener noreferrer';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        setSuccess('Ticket link opened in a new tab.');
+      if (response.ok) {
+        const data = await response.json();
+        setBookings(data);
       } else {
-        setError(response.error || 'Failed to generate ticket. Please try again later.');
+        setError('Failed to fetch bookings');
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, [token]);
+
+  const handleDownloadTicket = async (booking: Booking) => {
+    setDownloadingId(booking.id);
+    try {
+      const response = await fetch('/api/get-tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          uniqNO: Date.now(), // Random unique number as required by Rayna
+          referenceNo: booking.reference_no,
+          bookedOption: [
+            {
+              serviceUniqueId: "1", // This is usually 1 for single service bookings
+              bookingId: Number(booking.rayna_booking_id)
+            }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      if (data.ticketURL || data.url) {
+        window.open(data.ticketURL || data.url, '_blank');
+      } else if (data.result?.ticketURL) {
+        window.open(data.result.ticketURL, '_blank');
+      } else {
+        alert('Ticket not available yet. Please try again later.');
       }
     } catch (err) {
       console.error('Download error:', err);
-      setError('An error occurred while trying to download your ticket.');
+      alert('Failed to download ticket.');
     } finally {
-      setDownloading(null);
+      setDownloadingId(null);
     }
   };
 
-  const handleCancelBooking = async () => {
-    if (!cancelData) return;
+  const handleCancelBooking = async (booking: Booking) => {
+    if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) return;
     
-    setCancelling(cancelData.bookingId);
-    setError(null);
-    setSuccess(null);
-
+    setCancellingId(booking.id);
     try {
-      const response = await bookingService.cancelBooking({
-        bookingId: cancelData.bookingId.toString(),
-        referenceNo: cancelData.referenceNo,
-        cancellationReason: cancelReason
+      const response = await fetch('/api/cancel-booking', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          bookingId: Number(booking.rayna_booking_id),
+          referenceNo: booking.reference_no,
+          remark: "Cancelled by user via B2B portal"
+        })
       });
 
-      if (response.status === 1) {
-        setSuccess(response.message || 'Booking cancelled successfully.');
-        
-        // Update local state and storage
-        const updatedBookings = bookings.map(b => {
-          if (b.result.referenceNo === cancelData.referenceNo) {
-            return {
-              ...b,
-              result: {
-                ...b.result,
-                details: b.result.details.map(d => 
-                  d.bookingId === cancelData.bookingId ? { ...d, status: 'Cancelled' } : d
-                )
-              }
-            };
-          }
-          return b;
-        });
-        
-        setBookings(updatedBookings);
-        localStorage.setItem('rayna_bookings', JSON.stringify(updatedBookings));
-        setShowCancelModal(false);
+      const data = await response.json();
+      if (response.ok && (data.status === 'Success' || data.result?.status === 'Success' || data.isSuccess)) {
+        alert('Booking cancelled successfully.');
+        fetchBookings(); // Refresh list
       } else {
-        setError(response.message || 'Failed to cancel booking.');
+        alert(data.message || data.error || 'Failed to cancel booking. It might be too close to the travel date.');
       }
     } catch (err) {
-      console.error('Cancellation error:', err);
-      setError('An error occurred while trying to cancel your booking.');
+      console.error('Cancel error:', err);
+      alert('Failed to cancel booking.');
     } finally {
-      setCancelling(null);
+      setCancellingId(null);
     }
   };
 
-  const openCancelModal = (booking: SavedBooking, detail: any) => {
-    setCancelData({
-      bookingId: detail.bookingId,
-      referenceNo: booking.result.referenceNo,
-      tourName: booking.tourName
-    });
-    setShowCancelModal(true);
-  };
+  const filteredBookings = bookings.filter(booking => {
+    const matchesSearch = booking.tour_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          booking.rayna_booking_id.includes(searchTerm) ||
+                          (booking.reference_no && booking.reference_no.includes(searchTerm));
+    const matchesStatus = statusFilter === 'All' || booking.status === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-20">
-      <DashboardNavbar />
-      
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-10">
-          <div>
-            <h1 className="text-4xl font-display font-bold text-slate-900 mb-2">My Bookings</h1>
-            <p className="text-slate-500">Manage your upcoming tours and download your tickets.</p>
+    <div className="max-w-full mx-auto px-8 py-12">
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <h1 className="text-4xl font-display font-bold text-slate-900 mb-2">My Bookings</h1>
+          <p className="text-slate-500 text-lg">Manage your upcoming and past experiences.</p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative group">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 group-focus-within:text-brand transition-colors" />
+            <input 
+              type="text"
+              placeholder="Search by tour or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand/5 focus:border-brand outline-none text-sm w-full sm:w-64 transition-all"
+            />
           </div>
-          <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center gap-3">
-            <div className="w-10 h-10 bg-brand/10 rounded-xl flex items-center justify-center text-brand">
-              <Ticket size={20} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Total Bookings</p>
-              <p className="text-lg font-bold text-slate-900">{bookings.length}</p>
-            </div>
+          
+          <div className="relative group">
+            <Filter className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-brand transition-colors" />
+            <select 
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="pl-10 pr-8 py-3 bg-white border border-slate-200 rounded-2xl focus:ring-4 focus:ring-brand/5 focus:border-brand outline-none text-sm appearance-none cursor-pointer transition-all"
+            >
+              <option value="All">All Status</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Cancelled">Cancelled</option>
+              <option value="Pending">Pending</option>
+            </select>
           </div>
         </div>
+      </div>
 
-        {error && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center justify-between text-red-600 text-sm"
-          >
-            <div className="flex items-center gap-3">
-              <AlertCircle size={18} />
-              {error}
-            </div>
-            <button onClick={() => setError(null)} className="p-1 hover:bg-red-100 rounded-full transition-colors">
-              <X size={16} />
-            </button>
-          </motion.div>
-        )}
+      {error && (
+        <div className="mb-8 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5" />
+          {error}
+        </div>
+      )}
 
-        {success && (
-          <motion.div 
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 p-4 bg-green-50 border border-green-100 rounded-2xl flex items-center justify-between text-green-600 text-sm"
-          >
-            <div className="flex items-center gap-3">
-              <CheckCircle2 size={18} />
-              {success}
-            </div>
-            <button onClick={() => setSuccess(null)} className="p-1 hover:bg-green-100 rounded-full transition-colors">
-              <X size={16} />
-            </button>
-          </motion.div>
-        )}
-
-        {bookings.length === 0 ? (
-          <div className="bg-white rounded-[2.5rem] p-20 text-center border border-slate-100 shadow-sm">
-            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300">
-              <Ticket size={40} />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">No bookings found</h3>
-            <p className="text-slate-500 mb-8">You haven't made any bookings yet. Start exploring tours!</p>
-            <a href="/" className="inline-flex items-center gap-2 bg-brand text-white px-8 py-3 rounded-xl font-bold hover:bg-brand-dark transition-all">
-              Explore Tours <ChevronRight size={18} />
-            </a>
+      {filteredBookings.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center shadow-sm">
+          <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Ticket className="w-10 h-10 text-slate-300" />
           </div>
-        ) : (
-          <div className="space-y-6">
-            {bookings.map((booking, idx) => (
-              <motion.div 
-                key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
-              >
-                <div className="p-8">
-                  <div className="flex flex-col md:flex-row justify-between gap-6 mb-8">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="bg-brand/10 text-brand text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-                          Confirmed
-                        </span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1">
-                          <Hash size={10} /> Ref: {booking.result.referenceNo}
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-display font-bold text-slate-900 mb-4">{booking.tourName}</h3>
-                      
-                      <div className="flex flex-wrap gap-6 text-sm">
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Calendar size={16} className="text-brand" />
-                          <span className="font-medium">{booking.tourDate}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <Clock size={16} className="text-brand" />
-                          <span className="font-medium">{booking.startTime}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex flex-col items-end justify-center">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">Booked On</p>
-                      <p className="text-sm font-medium text-slate-900">
-                        {new Date(booking.bookingDate).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        })}
-                      </p>
-                    </div>
+          <h3 className="text-xl font-bold text-slate-900 mb-2">No bookings found</h3>
+          <p className="text-slate-500 mb-8 max-w-md mx-auto">
+            {searchTerm || statusFilter !== 'All' ? "Try adjusting your filters to find what you're looking for." : "You haven't made any bookings yet. Start exploring amazing experiences now!"}
+          </p>
+          {!searchTerm && statusFilter === 'All' && (
+            <Link 
+              to="/dashboard" 
+              className="inline-flex items-center gap-2 px-8 py-3 bg-emerald-600 text-white font-semibold rounded-xl hover:bg-emerald-700 transition-all"
+            >
+              Explore Tours
+              <ChevronRight className="w-4 h-4" />
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="grid gap-6">
+          {filteredBookings.map((booking, idx) => (
+            <motion.div
+              key={booking.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.05 }}
+              className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm hover:shadow-md transition-all group"
+            >
+              <div className="flex flex-col lg:flex-row gap-6">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-sm text-slate-400 font-mono">#{idx + 1}</span>
+                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                      booking.status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' : 
+                      booking.status === 'Cancelled' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {booking.status}
+                    </span>
+                    <span className="text-sm text-slate-400 font-mono">ID: {booking.rayna_booking_id}</span>
+                    {booking.reference_no && (
+                      <span className="text-sm text-slate-400 font-mono">Ref: {booking.reference_no}</span>
+                    )}
                   </div>
+                  
+                  <h3 className="text-2xl font-bold text-slate-900 mb-1 group-hover:text-emerald-600 transition-colors">
+                    {booking.tour_name}
+                  </h3>
+                  <p className="text-emerald-600 font-semibold mb-4 text-sm">{booking.option_name || 'Standard Option'}</p>
 
-                  <div className="bg-slate-50 rounded-3xl p-6">
-                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Tickets & Options</h4>
-                    <div className="space-y-4">
-                      {booking.result.details.map((detail, dIdx) => (
-                        <div key={dIdx} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-100">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                              <Ticket size={18} />
-                            </div>
-                            <div>
-                              <p className="text-xs font-bold text-slate-900">Booking ID: {detail.bookingId}</p>
-                              <p className="text-[10px] text-slate-500">Conf No: {detail.confirmationNo}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-4">
-                            <span className={`text-[10px] font-bold px-3 py-1 rounded-full uppercase ${
-                              detail.status === 'Cancelled' 
-                                ? 'bg-red-100 text-red-600' 
-                                : 'bg-green-50 text-green-600'
-                            }`}>
-                              {detail.status}
-                            </span>
-                            
-                                {detail.status !== 'Cancelled' && (
-                                  <div className="flex items-center gap-2">
-                                    {(detail.ticketURL || booking.result.ticketURL || detail.downloadRequired) && (
-                                      <button 
-                                        onClick={() => handleDownloadTicket(booking, detail)}
-                                        disabled={downloading === detail.bookingId}
-                                        className="flex items-center gap-2 bg-brand text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-brand-dark transition-all disabled:opacity-50 shadow-sm shadow-brand/20"
-                                      >
-                                        {downloading === detail.bookingId ? (
-                                          <Loader2 size={14} className="animate-spin" />
-                                        ) : (
-                                          <Download size={14} />
-                                        )}
-                                        {(detail.ticketURL || booking.result.ticketURL) ? 'View Ticket' : 'Download Ticket'}
-                                      </button>
-                                    )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                        <Calendar className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Travel Date</p>
+                        <p className="font-semibold">
+                          {(() => {
+                            try {
+                              return format(new Date(booking.travel_date), 'PPP');
+                            } catch (e) {
+                              return booking.travel_date;
+                            }
+                          })()}
+                        </p>
+                      </div>
+                    </div>
 
-                                    <button 
-                                      onClick={() => openCancelModal(booking, detail)}
-                                      className="flex items-center gap-2 text-red-600 hover:bg-red-50 px-4 py-2 rounded-xl text-xs font-bold transition-all"
-                                    >
-                                      <Trash2 size={14} />
-                                      Cancel
-                                    </button>
-                                  </div>
-                                )}
-                          </div>
-                        </div>
-                      ))}
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                        <Clock className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Booked On</p>
+                        <p className="font-semibold">
+                          {(() => {
+                            try {
+                              return format(new Date(booking.booking_date), 'PPP');
+                            } catch (e) {
+                              return booking.booking_date;
+                            }
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-slate-600">
+                      <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center">
+                        <MapPin className="w-5 h-5 text-slate-400" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Location</p>
+                        <p className="font-semibold">Dubai, UAE</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {/* Cancellation Modal */}
+                <div className="lg:w-64 flex flex-col justify-between items-end border-t lg:border-t-0 lg:border-l border-slate-100 pt-6 lg:pt-0 lg:pl-6">
+                  <div className="text-right">
+                    <p className="text-sm text-slate-400 mb-1">Total Amount</p>
+                    <p className="text-3xl font-bold text-slate-900">AED {booking.total_amount.toFixed(2)}</p>
+                  </div>
+
+                  <div className="flex gap-3 w-full lg:w-auto mt-6 lg:mt-0">
+                    <button 
+                      onClick={() => handleDownloadTicket(booking)}
+                      disabled={downloadingId === booking.id || booking.status === 'Cancelled'}
+                      className="flex-1 lg:flex-none px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {downloadingId === booking.id ? <Loader2 size={14} className="animate-spin" /> : 'View Ticket'}
+                    </button>
+                    <button 
+                      onClick={() => setSelectedBooking(booking)}
+                      className="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all text-sm"
+                    >
+                      Details
+                    </button>
+                    {booking.status === 'Confirmed' && (
+                      <button 
+                        onClick={() => handleCancelBooking(booking)}
+                        disabled={cancellingId === booking.id}
+                        className="p-2.5 text-slate-400 hover:text-red-500 transition-colors hover:bg-red-50 rounded-xl flex items-center gap-2"
+                        title="Cancel Booking"
+                      >
+                        {cancellingId === booking.id ? <Loader2 size={18} className="animate-spin" /> : <X size={18} />}
+                        <span className="text-xs font-bold uppercase">Cancel</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
+
+      {/* Details Modal */}
       <AnimatePresence>
-        {showCancelModal && (
+        {selectedBooking && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setShowCancelModal(false)}
+              onClick={() => setSelectedBooking(null)}
               className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             />
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden p-8"
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden"
             >
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-slate-900">Cancel Booking</h3>
-                <button onClick={() => setShowCancelModal(false)} className="text-slate-400 hover:text-slate-600">
-                  <X size={24} />
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-display font-bold text-slate-900">Booking Details</h2>
+                  <p className="text-slate-500 text-sm">ID: {selectedBooking.rayna_booking_id}</p>
+                </div>
+                <button 
+                  onClick={() => setSelectedBooking(null)}
+                  className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-900 transition-colors"
+                >
+                  <X size={20} />
                 </button>
               </div>
 
-              <div className="mb-6">
-                <p className="text-sm text-slate-500 mb-4">
-                  Are you sure you want to cancel your booking for <span className="font-bold text-slate-900">"{cancelData?.tourName}"</span>?
-                </p>
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-xs space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Booking ID:</span>
-                    <span className="font-bold text-slate-900">{cancelData?.bookingId}</span>
+              <div className="p-8 space-y-8 max-h-[70vh] overflow-y-auto">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Tour Information</h3>
+                  <div className="bg-slate-50 rounded-2xl p-6 space-y-4">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Tour Name</span>
+                      <span className="font-semibold text-slate-900">{selectedBooking.tour_name}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Option</span>
+                      <span className="font-semibold text-emerald-600">{selectedBooking.option_name || 'Standard'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Travel Date</span>
+                      <span className="font-semibold text-slate-900">{selectedBooking.travel_date}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Amount Paid</span>
+                      <span className="font-bold text-slate-900">AED {selectedBooking.total_amount.toFixed(2)}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-slate-400">Reference No:</span>
-                    <span className="font-bold text-slate-900">{cancelData?.referenceNo}</span>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 mb-4">Passenger Details</h3>
+                  {(() => {
+                    try {
+                      const pax = JSON.parse(selectedBooking.pax_details);
+                      return (
+                        <div className="mb-4 flex items-center gap-2 text-sm text-slate-500">
+                          <UserIcon size={16} />
+                          <span>Total Passengers: {pax.length}</span>
+                        </div>
+                      );
+                    } catch (e) { return null; }
+                  })()}
+                  <div className="space-y-4">
+                    {(() => {
+                      try {
+                        const pax = JSON.parse(selectedBooking.pax_details);
+                        return pax.map((p: any, i: number) => (
+                          <div key={i} className="border border-slate-100 rounded-2xl p-6 space-y-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold text-lg">
+                                {p.firstName?.[0]}{p.lastName?.[0]}
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-bold text-slate-900 text-lg">{p.prefix} {p.firstName} {p.lastName}</p>
+                                  {p.leadPassenger === 1 && (
+                                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md uppercase">Lead Passenger</span>
+                                  )}
+                                </div>
+                                <p className="text-sm text-slate-500">{p.paxType} • {p.nationality}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
+                              <div>
+                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Email Address</p>
+                                <p className="text-sm font-medium text-slate-700">{p.email || 'N/A'}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Mobile Number</p>
+                                <p className="text-sm font-medium text-slate-700">{p.mobile || 'N/A'}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ));
+                      } catch (e) {
+                        return <p className="text-slate-400 italic">No passenger details available.</p>;
+                      }
+                    })()}
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2 mb-8">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Reason for Cancellation</label>
-                <textarea 
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Please provide a reason..."
-                  rows={3}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 resize-none"
-                />
-              </div>
-
-              <div className="flex gap-4">
+              <div className="p-8 bg-slate-50 border-t border-slate-100 flex justify-end gap-4">
                 <button 
-                  onClick={() => setShowCancelModal(false)}
-                  className="flex-1 px-6 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all"
+                  onClick={() => setSelectedBooking(null)}
+                  className="px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all"
                 >
-                  Keep Booking
+                  Close
                 </button>
                 <button 
-                  onClick={handleCancelBooking}
-                  disabled={cancelling !== null}
-                  className="flex-1 bg-red-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2"
+                  onClick={() => handleDownloadTicket(selectedBooking)}
+                  className="px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all"
                 >
-                  {cancelling ? <Loader2 size={18} className="animate-spin" /> : 'Confirm Cancel'}
+                  Download Ticket
                 </button>
               </div>
             </motion.div>
@@ -401,3 +453,5 @@ export const MyBookings = () => {
     </div>
   );
 };
+
+export default MyBookings;

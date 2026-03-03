@@ -5,7 +5,6 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { tourService } from '../services/api';
 import { TourDetail, TourOptionPrice, TourOptionStaticData, TimeSlot } from '../types';
 import { BookingModal } from '../components/BookingModal';
-import { DashboardNavbar } from '../components/Navbar';
 
 export const TourDetailView = () => {
   const navigate = useNavigate();
@@ -14,21 +13,25 @@ export const TourDetailView = () => {
   const cityId = searchParams.get('cityId');
   const contractId = searchParams.get('contractId');
   const date = searchParams.get('date');
+  const initialAdults = Number(searchParams.get('adults') || '1');
+  const initialChildren = Number(searchParams.get('children') || '0');
+  const initialInfants = Number(searchParams.get('infants') || '0');
 
   const [tour, setTour] = useState<TourDetail | null>(null);
   const [staticOptions, setStaticOptions] = useState<TourOptionStaticData | null>(null);
   const [liveOptions, setLiveOptions] = useState<TourOptionPrice[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedTimeSlotId, setSelectedTimeSlotId] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState(date || new Date().toISOString().split('T')[0]);
   const [loadingTimeSlots, setLoadingTimeSlots] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState('');
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
   const [selectedTransferId, setSelectedTransferId] = useState<number | null>(null);
-  const [adults, setAdults] = useState(1);
-  const [children, setChildren] = useState(0);
-  const [infants, setInfants] = useState(0);
+  const [adults, setAdults] = useState(initialAdults);
+  const [children, setChildren] = useState(initialChildren);
+  const [infants, setInfants] = useState(initialInfants);
 
   const calculateTotal = (adultPrice: number, childPrice: number, infantPrice: number) => {
     return (adults * adultPrice) + (children * childPrice) + (infants * infantPrice);
@@ -36,7 +39,7 @@ export const TourDetailView = () => {
 
   useEffect(() => {
     const loadDetail = async () => {
-      if (!tourId || !cityId || !contractId || !date) return;
+      if (!tourId || !cityId || !contractId || !selectedDate) return;
       setLoading(true);
       try {
         const detail = await tourService.getTourDetails({
@@ -44,7 +47,7 @@ export const TourDetailView = () => {
           cityId: Number(cityId),
           tourId: Number(tourId),
           contractId: Number(contractId),
-          travelDate: date
+          travelDate: selectedDate
         });
         setTour(detail);
         setActiveImage(detail.imagePath);
@@ -54,7 +57,7 @@ export const TourDetailView = () => {
           tourService.getTourOptions({
             tourId: Number(tourId),
             contractId: Number(contractId),
-            travelDate: date,
+            travelDate: selectedDate,
             noOfAdult: 1
           })
         ]);
@@ -80,7 +83,7 @@ export const TourDetailView = () => {
 
   useEffect(() => {
     const fetchSlots = async () => {
-      if (!tour?.isSlot || !selectedOptionId || !selectedTransferId || !date) {
+      if (!tour?.isSlot || !selectedOptionId || !selectedTransferId || !selectedDate) {
         setTimeSlots([]);
         setSelectedTimeSlotId(null);
         return;
@@ -91,7 +94,7 @@ export const TourDetailView = () => {
         const slots = await tourService.getTimeSlots({
           tourId: Number(tourId),
           tourOptionId: selectedOptionId,
-          travelDate: date,
+          travelDate: selectedDate,
           transferId: selectedTransferId,
           adult: adults,
           child: children,
@@ -112,7 +115,7 @@ export const TourDetailView = () => {
     };
 
     fetchSlots();
-  }, [selectedOptionId, selectedTransferId, tour?.isSlot, tourId, date, adults, children, contractId]);
+  }, [selectedOptionId, selectedTransferId, tour?.isSlot, tourId, selectedDate, adults, children, contractId]);
 
   const getImageUrl = (url: string) => {
     if (!url) return '';
@@ -149,18 +152,18 @@ export const TourDetailView = () => {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
-      <DashboardNavbar />
       <BookingModal 
         isOpen={isBookingModalOpen} 
         onClose={() => setIsBookingModalOpen(false)} 
         tourName={tour.tourName}
+        optionName={staticOptions?.touroption.find(o => o.tourOptionId === selectedOptionId)?.optionName || ''}
         tourId={Number(tourId)}
         optionId={selectedOptionId || 0}
         transferId={selectedTransferId || 0}
         adults={adults}
         childrenCount={children}
         infants={infants}
-        tourDate={date || ''}
+        tourDate={selectedDate}
         adultRate={liveOptions.find(o => o.tourOptionId === selectedOptionId && o.transferId === selectedTransferId)?.adultPrice || 0}
         childRate={liveOptions.find(o => o.tourOptionId === selectedOptionId && o.transferId === selectedTransferId)?.childPrice || 0}
         infantRate={liveOptions.find(o => o.tourOptionId === selectedOptionId && o.transferId === selectedTransferId)?.infantPrice || 0}
@@ -173,8 +176,8 @@ export const TourDetailView = () => {
       />
       
       {/* Detail Header */}
-      <div className="bg-white border-b border-slate-200 py-4 sticky top-16 z-40">
-        <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+      <div className="bg-white border-b border-slate-200 py-4 sticky top-20 z-40">
+        <div className="max-w-full mx-auto px-8 flex justify-between items-center">
           <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-brand flex items-center gap-1 transition-colors text-sm font-medium">
             <ChevronLeft size={18} /> Back to Results
           </button>
@@ -189,7 +192,7 @@ export const TourDetailView = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-10">
+      <div className="max-w-full mx-auto px-8 py-10">
         <div className="grid lg:grid-cols-3 gap-10">
           {/* Left Column: Gallery & Info */}
           <div className="lg:col-span-2 space-y-10">
@@ -235,9 +238,25 @@ export const TourDetailView = () => {
               </div>
             </div>
 
-            {/* Options Section - Moved here */}
+            {/* Options Section */}
             <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-10">
-              <h3 className="text-2xl font-display font-bold text-slate-900 mb-8">Select Option</h3>
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+                <h3 className="text-2xl font-display font-bold text-slate-900">Select Option</h3>
+                
+                <div className="flex flex-col space-y-1.5 min-w-[200px]">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">Travel Date</label>
+                  <div className="relative group">
+                    <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-brand" size={18} />
+                    <input 
+                      type="date" 
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand/10 transition-all cursor-pointer"
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-6">
                 {staticOptions?.touroption.map((opt) => {
                   const optionLivePrices = liveOptions.filter(l => l.tourOptionId === opt.tourOptionId);
@@ -481,69 +500,6 @@ export const TourDetailView = () => {
                       <div className="text-slate-600 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: tour.termsAndConditions }} />
                     </div>
                   )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Booking Widget */}
-          <div className="space-y-8">
-            <div className="bg-white rounded-[2.5rem] shadow-xl border border-slate-100 p-8 sticky top-8">
-              <div className="mb-8">
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Travel Date</p>
-                <div className="flex items-center gap-2 text-slate-900 font-bold">
-                  <Calendar size={18} className="text-brand" />
-                  {date}
-                </div>
-              </div>
-
-              <div className="space-y-4 mb-8">
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Travelers</label>
-                  <div className="relative">
-                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                    <select className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 appearance-none">
-                      <option>1 Adult, 0 Child</option>
-                      <option>2 Adults, 1 Child</option>
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                  </div>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setIsBookingModalOpen(true)}
-                className="w-full bg-brand text-white py-4 rounded-2xl font-bold text-lg hover:bg-brand-dark transition-all shadow-xl shadow-brand/20 mb-4"
-              >
-                Check Availability
-              </button>
-              
-              <div className="flex items-center justify-center gap-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                <ShieldCheck size={14} className="text-green-500" /> Secure Booking
-              </div>
-            </div>
-
-            <div className="bg-slate-900 rounded-[2.5rem] p-8 text-white">
-              <h4 className="font-display font-bold text-xl mb-4">Need Help?</h4>
-              <p className="text-slate-400 text-sm mb-6">Our travel experts are available 24/7 to assist you with your booking.</p>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                    <Phone size={18} className="text-brand" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">Call Us</p>
-                    <p className="text-sm font-bold">+971 4 208 7444</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center">
-                    <MessageCircle size={18} className="text-brand" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-bold text-slate-500 uppercase">WhatsApp</p>
-                    <p className="text-sm font-bold">+971 50 123 4567</p>
-                  </div>
                 </div>
               </div>
             </div>
