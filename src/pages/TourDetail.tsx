@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Globe, Star, Clock, ShieldCheck, X, Calendar, ChevronDown, ShieldAlert, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Globe, Star, Clock, ShieldCheck, X, Calendar, ChevronDown } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { tourService } from '../services/api';
@@ -297,11 +297,8 @@ export const TourDetailView = () => {
           ))}
         </div>
 
-        {/* 2-COL: OPTIONS LEFT, SIDEBAR RIGHT */}
-        <div className="grid lg:grid-cols-5 gap-8">
-
-          {/* LEFT: Options + Content */}
-          <div className="lg:col-span-3 space-y-8">
+        {/* FULL WIDTH: Options + Content */}
+        <div className="space-y-8">
 
             {/* Tour Title & Stats */}
             <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-8">
@@ -551,65 +548,6 @@ export const TourDetailView = () => {
                   )}
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* RIGHT SIDEBAR */}
-          <div className="lg:col-span-2 space-y-6">
-
-            {/* Tour Info */}
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 p-6 sticky top-36">
-              <h4 className="text-base font-bold text-slate-900 mb-4">Tour Info</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                  <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Duration</span>
-                  <span className="text-sm font-bold text-slate-900">{tour.duration}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                  <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Language</span>
-                  <span className="text-sm font-bold text-slate-900">{tour.tourLanguage || 'English'}</span>
-                </div>
-                <div className="flex justify-between items-center py-2 border-b border-slate-50">
-                  <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Rating</span>
-                  <span className="text-sm font-bold text-slate-900">⭐ {tour.rating} ({tour.reviewCount})</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-xs text-slate-400 uppercase font-bold tracking-wider">Tour Type</span>
-                  <span className="text-sm font-bold text-slate-900">{tour.cityTourType}</span>
-                </div>
-              </div>
-
-              {/* Cancellation Policy */}
-              <div className="mt-6 pt-6 border-t border-slate-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <ShieldAlert size={15} className="text-amber-500" />
-                  <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Cancellation Policy</span>
-                </div>
-                {policyLoading ? (
-                  <div className="flex items-center gap-2 text-xs text-slate-400">
-                    <Loader2 size={12} className="animate-spin" /> Loading...
-                  </div>
-                ) : policy.length > 0 ? (
-                  policy.map((p: any, i: number) => (
-                    <div key={i} className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mt-1">
-                      {p.percentage === 100
-                        ? `⚠️ 100% charge: ${new Date(p.fromDate).toDateString()} → ${new Date(p.toDate).toDateString()}`
-                        : `${p.percentage}% charge: ${new Date(p.fromDate).toDateString()} → ${new Date(p.toDate).toDateString()}`
-                      }
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-xs text-slate-400">No policy available.</p>
-                )}
-              </div>
-
-              {/* Book CTA */}
-              <button
-                onClick={() => setIsBookingModalOpen(true)}
-                className="w-full mt-6 bg-brand text-white py-4 rounded-2xl font-bold text-base hover:bg-brand-dark transition-all shadow-lg shadow-brand/20"
-              >
-                Book Now
-              </button>
             </div>
           </div>
 
