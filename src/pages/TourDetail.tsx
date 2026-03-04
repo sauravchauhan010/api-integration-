@@ -268,7 +268,7 @@ export const TourDetailView = () => {
             </div>
           </div>
           <div className="space-y-6">
-            {staticOptions?.touroption.map((opt) => {
+            {staticOptions?.touroption.map((opt, optIdx) => {
               const optLP = liveOptions.filter(l => l.tourOptionId === opt.tourOptionId);
               if (optLP.length === 0) return null;
               const isSel = selectedOptionId === opt.tourOptionId;
@@ -281,7 +281,12 @@ export const TourDetailView = () => {
                 >
                   <div className="flex flex-col md:flex-row justify-between gap-6">
                     <div className="flex-1">
-                      <h4 className="text-lg font-bold text-slate-900 mb-1">{opt.optionName}</h4>
+                      <h4 className="text-lg font-bold text-slate-900 mb-1">
+  {staticOptions.touroption.length > 1 && (
+    <span className="inline-block bg-brand text-white text-xs font-bold px-2 py-0.5 rounded-lg mr-2">#{optIdx + 1}</span>
+  )}
+  {opt.optionName}
+</h4>
                       <p className="text-sm text-slate-500 mb-4 line-clamp-2">{opt.optionDescription}</p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
@@ -316,37 +321,32 @@ export const TourDetailView = () => {
                         {isSel && (
                           <div className="space-y-2">
                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Travelers</label>
-                            <div className="flex flex-col gap-2">
-                              <div className="flex gap-2">
-                                <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
-                                  <span className="text-xs font-bold text-slate-600">Adult</span>
-                                  <div className="flex items-center gap-2">
-                                    <button onClick={(e) => { e.stopPropagation(); setAdults(Math.max(1, adults - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
-                                    <span className="text-sm font-bold w-4 text-center">{adults}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); setAdults(adults + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
-                                  </div>
-                                </div>
-                                <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
-                                  <span className="text-xs font-bold text-slate-600">Child</span>
-                                  <div className="flex items-center gap-2">
-                                    <button onClick={(e) => { e.stopPropagation(); setChildren(Math.max(0, children - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
-                                    <span className="text-sm font-bold w-4 text-center">{children}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); setChildren(children + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex gap-2">
-                                <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
-                                  <span className="text-xs font-bold text-slate-600">Infant</span>
-                                  <div className="flex items-center gap-2">
-                                    <button onClick={(e) => { e.stopPropagation(); setInfants(Math.max(0, infants - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
-                                    <span className="text-sm font-bold w-4 text-center">{infants}</span>
-                                    <button onClick={(e) => { e.stopPropagation(); setInfants(infants + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
-                                  </div>
-                                </div>
-                                <div className="flex-1 invisible" />
-                              </div>
-                            </div>
+                            <div className="flex gap-2">
+  <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
+    <span className="text-xs font-bold text-slate-600">Adult</span>
+    <div className="flex items-center gap-2">
+      <button onClick={(e) => { e.stopPropagation(); setAdults(Math.max(1, adults - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
+      <span className="text-sm font-bold w-4 text-center">{adults}</span>
+      <button onClick={(e) => { e.stopPropagation(); setAdults(adults + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
+    </div>
+  </div>
+  <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
+    <span className="text-xs font-bold text-slate-600">Child</span>
+    <div className="flex items-center gap-2">
+      <button onClick={(e) => { e.stopPropagation(); setChildren(Math.max(0, children - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
+      <span className="text-sm font-bold w-4 text-center">{children}</span>
+      <button onClick={(e) => { e.stopPropagation(); setChildren(children + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
+    </div>
+  </div>
+  <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
+    <span className="text-xs font-bold text-slate-600">Infant</span>
+    <div className="flex items-center gap-2">
+      <button onClick={(e) => { e.stopPropagation(); setInfants(Math.max(0, infants - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
+      <span className="text-sm font-bold w-4 text-center">{infants}</span>
+      <button onClick={(e) => { e.stopPropagation(); setInfants(infants + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
+    </div>
+  </div>
+</div>
                           </div>
                         )}
                       </div>
