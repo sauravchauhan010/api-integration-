@@ -32,6 +32,7 @@ export const TourDetailView = () => {
   const [adults, setAdults] = useState(initialAdults);
   const [children, setChildren] = useState(initialChildren);
   const [infants, setInfants] = useState(initialInfants);
+  const [showPaxDropdown, setShowPaxDropdown] = useState<number | null>(null);
 
   const calculateTotal = (adultPrice: number, childPrice: number, infantPrice: number) => {
     return (adults * adultPrice) + (children * childPrice) + (infants * infantPrice);
@@ -268,7 +269,7 @@ export const TourDetailView = () => {
             </div>
           </div>
           <div className="space-y-6">
-            {staticOptions?.touroption.map((opt, optIdx) => {
+            {staticOptions?.touroption.map((opt) => {
               const optLP = liveOptions.filter(l => l.tourOptionId === opt.tourOptionId);
               if (optLP.length === 0) return null;
               const isSel = selectedOptionId === opt.tourOptionId;
@@ -281,12 +282,7 @@ export const TourDetailView = () => {
                 >
                   <div className="flex flex-col md:flex-row justify-between gap-6">
                     <div className="flex-1">
-                      <h4 className="text-lg font-bold text-slate-900 mb-1">
-  {staticOptions.touroption.length > 1 && (
-    <span className="inline-block bg-brand text-white text-xs font-bold px-2 py-0.5 rounded-lg mr-2">#{optIdx + 1}</span>
-  )}
-  {opt.optionName}
-</h4>
+                      <h4 className="text-lg font-bold text-slate-900 mb-1">{opt.optionName}</h4>
                       <p className="text-sm text-slate-500 mb-4 line-clamp-2">{opt.optionDescription}</p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="space-y-2">
@@ -319,34 +315,41 @@ export const TourDetailView = () => {
                           </div>
                         )}
                         {isSel && (
-                          <div className="space-y-2">
+                          <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
                             <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">Travelers</label>
-                            <div className="flex gap-2">
-  <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
-    <span className="text-xs font-bold text-slate-600">Adult</span>
-    <div className="flex items-center gap-2">
-      <button onClick={(e) => { e.stopPropagation(); setAdults(Math.max(1, adults - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
-      <span className="text-sm font-bold w-4 text-center">{adults}</span>
-      <button onClick={(e) => { e.stopPropagation(); setAdults(adults + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
-    </div>
-  </div>
-  <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
-    <span className="text-xs font-bold text-slate-600">Child</span>
-    <div className="flex items-center gap-2">
-      <button onClick={(e) => { e.stopPropagation(); setChildren(Math.max(0, children - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
-      <span className="text-sm font-bold w-4 text-center">{children}</span>
-      <button onClick={(e) => { e.stopPropagation(); setChildren(children + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
-    </div>
-  </div>
-  <div className="flex-1 flex items-center justify-between bg-white border border-slate-200 rounded-xl px-3 py-2">
-    <span className="text-xs font-bold text-slate-600">Infant</span>
-    <div className="flex items-center gap-2">
-      <button onClick={(e) => { e.stopPropagation(); setInfants(Math.max(0, infants - 1)); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">-</button>
-      <span className="text-sm font-bold w-4 text-center">{infants}</span>
-      <button onClick={(e) => { e.stopPropagation(); setInfants(infants + 1); }} className="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200">+</button>
-    </div>
-  </div>
-</div>
+                            <div className="relative">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setShowPaxDropdown(showPaxDropdown === opt.tourOptionId ? null : opt.tourOptionId); }}
+                                className="w-full flex items-center justify-between px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:border-brand transition-all"
+                              >
+                                <span>👥 {adults} Adult{adults > 1 ? 's' : ''}, {children} Child{children !== 1 ? 'ren' : ''}, {infants} Infant{infants !== 1 ? 's' : ''}</span>
+                                <ChevronDown size={16} className="text-slate-400" />
+                              </button>
+                              {showPaxDropdown === opt.tourOptionId && (
+                                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-slate-100 p-4 z-50 space-y-3">
+                                  {[
+                                    { label: 'Adults', sub: 'Age 12+', val: adults, set: setAdults, min: 1 },
+                                    { label: 'Children', sub: 'Age 2–11', val: children, set: setChildren, min: 0 },
+                                    { label: 'Infants', sub: 'Under 2', val: infants, set: setInfants, min: 0 },
+                                  ].map(({ label, sub, val, set, min }) => (
+                                    <div key={label} className="flex items-center justify-between">
+                                      <div>
+                                        <p className="text-sm font-bold text-slate-900">{label}</p>
+                                        <p className="text-xs text-slate-400">{sub}</p>
+                                      </div>
+                                      <div className="flex items-center gap-3">
+                                        <button onClick={() => set(Math.max(min, val - 1))} className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand font-bold transition-colors">−</button>
+                                        <span className="text-sm font-bold w-5 text-center">{val}</span>
+                                        <button onClick={() => set(val + 1)} className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center hover:border-brand hover:text-brand font-bold transition-colors">+</button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                  <div className="pt-2 border-t border-slate-100 flex justify-end">
+                                    <button onClick={() => setShowPaxDropdown(null)} className="text-brand font-bold text-sm px-4 py-1 hover:bg-brand/5 rounded-lg">Done</button>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
