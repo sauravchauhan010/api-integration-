@@ -109,7 +109,7 @@ const MyBookings: React.FC = () => {
         body: JSON.stringify({
           bookingId: Number(booking.rayna_booking_id),
           referenceNo: booking.reference_no,
-          remark: "Cancelled by user via B2B portal"
+          cancellationReason: "Cancelled by user via B2B portal"
         })
       });
 
