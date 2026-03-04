@@ -542,7 +542,7 @@ export const TourDetailView = () => {
                   )}
                   {tour.termsAndConditions && (
                     <div className="mt-8">
-                      <h3 className="text-xl font-display font-bold text-slate-900 mb-4">Terms & Conditions</h3>
+                      <h3 className="text-xl font-display font-bold text-slate-900 mb-4">Terms &amp; Conditions</h3>
                       <div className="text-slate-600 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: tour.termsAndConditions }} />
                     </div>
                   )}
