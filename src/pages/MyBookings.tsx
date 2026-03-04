@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Calendar, MapPin, Ticket, Clock, ChevronRight, Loader2, AlertCircle, X, Search, Filter, User as UserIcon, ShieldAlert } from 'lucide-react';
+import { Calendar, MapPin, Ticket, Clock, ChevronRight, Loader2, AlertCircle, X, Search, Filter, Trash2, User as UserIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
@@ -18,60 +18,6 @@ interface Booking {
   status: string;
   pax_details: string;
 }
-
-// Cancellation Policy component shown inside booking details modal
-const CancellationPolicySection: React.FC<{ booking: Booking }> = ({ booking }) => {
-  const [policy, setPolicy] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!booking.tour_id || !booking.travel_date) return;
-    setLoading(true);
-    const today = new Date().toISOString().split('T')[0].replace(/-/g, '/');
-    const travelDate = booking.travel_date.replace(/-/g, '/');
-    fetch('/api/tour-policy', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        tourId: booking.tour_id,
-        travelDate,
-        startTime: '00:00:00',
-        currentDate: today,
-        contractId: 300,
-        tourOptionId: 0
-      })
-    })
-      .then(r => r.json())
-      .then(data => setPolicy(data.result || []))
-      .catch(() => setPolicy([]))
-      .finally(() => setLoading(false));
-  }, [booking.id]);
-
-  return (
-    <div className="mt-4 pt-4 border-t border-slate-100">
-      <div className="flex items-center gap-2 mb-2">
-        <ShieldAlert size={14} className="text-amber-500" />
-        <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Cancellation Policy</span>
-      </div>
-      {loading ? (
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <Loader2 size={12} className="animate-spin" /> Loading policy...
-        </div>
-      ) : policy.length > 0 ? (
-        policy.map((p: any, i: number) => (
-          <div key={i} className="text-xs text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mt-1">
-            {p.percentage === 100
-              ? `⚠️ 100% cancellation charge: ${new Date(p.fromDate).toDateString()} → ${new Date(p.toDate).toDateString()}`
-              : `${p.percentage}% cancellation charge: ${new Date(p.fromDate).toDateString()} → ${new Date(p.toDate).toDateString()}`
-            }
-          </div>
-        ))
-      ) : (
-        <p className="text-xs text-slate-400">No cancellation policy available.</p>
-      )}
-    </div>
-  );
-};
 
 const MyBookings: React.FC = () => {
   const { token, user } = useAuth();
@@ -122,11 +68,11 @@ const MyBookings: React.FC = () => {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          uniqNO: Date.now(),
+          uniqNO: Date.now(), // Random unique number as required by Rayna
           referenceNo: booking.reference_no,
           bookedOption: [
             {
-              serviceUniqueId: "1",
+              serviceUniqueId: "1", // This is usually 1 for single service bookings
               bookingId: Number(booking.rayna_booking_id)
             }
           ]
@@ -161,16 +107,16 @@ const MyBookings: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          bookingId: String(booking.rayna_booking_id),
+          bookingId: Number(booking.rayna_booking_id),
           referenceNo: booking.reference_no,
-          cancellationReason: "Cancelled by user via B2B portal"
+          remark: "Cancelled by user via B2B portal"
         })
       });
 
       const data = await response.json();
-      if (response.ok && (data.statuscode === 200 || data.result?.status === 1 || data.status === 'Success')) {
+      if (response.ok && (data.status === 'Success' || data.result?.status === 'Success' || data.isSuccess)) {
         alert('Booking cancelled successfully.');
-        fetchBookings();
+        fetchBookings(); // Refresh list
       } else {
         alert(data.message || data.error || 'Failed to cancel booking. It might be too close to the travel date.');
       }
@@ -348,13 +294,6 @@ const MyBookings: React.FC = () => {
 
                   <div className="flex gap-3 w-full lg:w-auto mt-6 lg:mt-0">
                     <button 
-                      onClick={() => handleDownloadTicket(booking)}
-                      disabled={downloadingId === booking.id || booking.status === 'Cancelled'}
-                      className="flex-1 lg:flex-none px-6 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-800 transition-all text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {downloadingId === booking.id ? <Loader2 size={14} className="animate-spin" /> : 'View Ticket'}
-                    </button>
-                    <button 
                       onClick={() => setSelectedBooking(booking)}
                       className="flex-1 lg:flex-none px-6 py-2.5 bg-white border border-slate-200 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-all text-sm"
                     >
@@ -429,8 +368,6 @@ const MyBookings: React.FC = () => {
                       <span className="text-slate-500">Amount Paid</span>
                       <span className="font-bold text-slate-900">AED {selectedBooking.total_amount.toFixed(2)}</span>
                     </div>
-                    {/* Cancellation Policy inside details modal */}
-                    <CancellationPolicySection booking={selectedBooking} />
                   </div>
                 </div>
 
@@ -439,52 +376,46 @@ const MyBookings: React.FC = () => {
                   {(() => {
                     try {
                       const pax = JSON.parse(selectedBooking.pax_details);
+                      // pax_details is stored as {adults, children, infants}
+                      const adults = pax.adults || 0;
+                      const children = pax.children || 0;
+                      const infants = pax.infants || 0;
+                      const total = adults + children + infants;
                       return (
-                        <div className="mb-4 flex items-center gap-2 text-sm text-slate-500">
-                          <UserIcon size={16} />
-                          <span>Total Passengers: {pax.length}</span>
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm text-slate-500 mb-2">
+                            <UserIcon size={16} />
+                            <span className="font-semibold">Total Passengers: {total}</span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-3">
+                            {adults > 0 && (
+                              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+                                <p className="text-2xl font-bold text-slate-900">{adults}</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Adult{adults > 1 ? 's' : ''}</p>
+                                <p className="text-[10px] text-slate-300 mt-0.5">Age 12+</p>
+                              </div>
+                            )}
+                            {children > 0 && (
+                              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+                                <p className="text-2xl font-bold text-slate-900">{children}</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Child{children > 1 ? 'ren' : ''}</p>
+                                <p className="text-[10px] text-slate-300 mt-0.5">Age 2–11</p>
+                              </div>
+                            )}
+                            {infants > 0 && (
+                              <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+                                <p className="text-2xl font-bold text-slate-900">{infants}</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mt-1">Infant{infants > 1 ? 's' : ''}</p>
+                                <p className="text-[10px] text-slate-300 mt-0.5">Under 2</p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       );
-                    } catch (e) { return null; }
+                    } catch (e) {
+                      return <p className="text-slate-400 italic text-sm">No passenger details available.</p>;
+                    }
                   })()}
-                  <div className="space-y-4">
-                    {(() => {
-                      try {
-                        const pax = JSON.parse(selectedBooking.pax_details);
-                        return pax.map((p: any, i: number) => (
-                          <div key={i} className="border border-slate-100 rounded-2xl p-6 space-y-4">
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center font-bold text-lg">
-                                {p.firstName?.[0]}{p.lastName?.[0]}
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="font-bold text-slate-900 text-lg">{p.prefix} {p.firstName} {p.lastName}</p>
-                                  {p.leadPassenger === 1 && (
-                                    <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-[10px] font-bold rounded-md uppercase">Lead Passenger</span>
-                                  )}
-                                </div>
-                                <p className="text-sm text-slate-500">{p.paxType} • {p.nationality}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-50">
-                              <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Email Address</p>
-                                <p className="text-sm font-medium text-slate-700">{p.email || 'N/A'}</p>
-                              </div>
-                              <div>
-                                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-1">Mobile Number</p>
-                                <p className="text-sm font-medium text-slate-700">{p.mobile || 'N/A'}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ));
-                      } catch (e) {
-                        return <p className="text-slate-400 italic">No passenger details available.</p>;
-                      }
-                    })()}
-                  </div>
                 </div>
               </div>
 
