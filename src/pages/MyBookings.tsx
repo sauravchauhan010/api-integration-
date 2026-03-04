@@ -113,12 +113,19 @@ const MyBookings: React.FC = () => {
         })
       });
 
-      const data = await response.json();
-      if (response.ok && (data.status === 'Success' || data.result?.status === 'Success' || data.isSuccess)) {
+     const data = await response.json();
+      const isSuccess = response.ok && (
+        data.statuscode === 200 ||
+        data.result?.status === 1 ||
+        data.result?.status === 'Success' ||
+        data.status === 'Success' ||
+        data.isSuccess === true
+      );
+      if (isSuccess) {
         alert('Booking cancelled successfully.');
-        fetchBookings(); // Refresh list
+        fetchBookings();
       } else {
-        alert(data.message || data.error || 'Failed to cancel booking. It might be too close to the travel date.');
+        alert(data.result?.message || data.message || data.error || 'Failed to cancel booking.');
       }
     } catch (err) {
       console.error('Cancel error:', err);
