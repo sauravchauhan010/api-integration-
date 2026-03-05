@@ -60,7 +60,7 @@ const LoginPage: React.FC = () => {
                 <Globe className="text-white" size={24} />
               </div>
               <span className="text-4xl font-display font-bold tracking-tight">
-                RAYNA<span className="text-brand ml-0.5">B2B</span>
+                SMC Tours<span className="text-brand ml-0.5">B2B</span>
               </span>
             </div>
             <div className="flex gap-1.5 mt-1 ml-12">
@@ -173,7 +173,7 @@ const LoginPage: React.FC = () => {
 
           <div className="mt-12 pt-8 border-t border-slate-100 text-center">
             <p className="text-slate-500 font-medium">
-              New to Rayna B2B?{' '}
+              New to SMC Tours?{' '}
               <Link to="/register" className="text-brand font-bold hover:underline ml-1">
                 Apply for an Account
               </Link>
