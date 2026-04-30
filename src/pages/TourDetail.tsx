@@ -116,7 +116,7 @@ export const TourDetailView = () => {
       if (!lastSegment.includes('.')) return url + '_L.jpg';
       return url;
     }
-    const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net/';
+    const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
     if (!url.includes('.')) return cdn + url + '_L.jpg';
     return cdn + url;
   };
