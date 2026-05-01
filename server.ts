@@ -267,12 +267,12 @@ app.post("/api/auth/change-password", (req, res) => {
 
 // --- Tour Endpoints ---
 
-app.post("/api/tour-policy", (req, res) => proxyRequest('/api/Tour/policy', 'post', req.body, res));
-app.get("/api/countries", (req, res) => proxyRequest('/api/Tour/countries', 'get', null, res));
-app.post("/api/cities", (req, res) => proxyRequest('/api/Tour/cities', 'post', req.body, res));
-app.post("/api/tours", (req, res) => proxyRequest('/api/Tour/tourstaticdata', 'post', req.body, res));
-app.post("/api/tour-details", (req, res) => proxyRequest('/api/Tour/tourStaticDataById', 'post', req.body, res));
-app.post("/api/tour-options-static", (req, res) => proxyRequest('/api/Tour/touroptionstaticdata', 'post', req.body, res));
+app.get("/api/countries",           (req, res) => cachedProxyRequest('/api/Tour/countries',           'get',  null,     res, CACHE_TTL.FOREVER));
+app.post("/api/cities",             (req, res) => cachedProxyRequest('/api/Tour/cities',              'post', req.body, res, CACHE_TTL.MEDIUM));
+app.post("/api/tours",              (req, res) => cachedProxyRequest('/api/Tour/tourstaticdata',      'post', req.body, res, CACHE_TTL.LONG));
+app.post("/api/tour-details",       (req, res) => cachedProxyRequest('/api/Tour/tourStaticDataById',  'post', req.body, res, CACHE_TTL.LONG));
+app.post("/api/tour-options-static",(req, res) => cachedProxyRequest('/api/Tour/touroptionstaticdata','post', req.body, res, CACHE_TTL.LONG));
+app.post("/api/tour-policy",        (req, res) => proxyRequest('/api/Tour/policy', 'post', req.body, res));
 app.post("/api/tour-prices", (req, res) => proxyRequest('/api/Tour/tourlist', 'post', req.body, res));
 app.post("/api/tour-options", (req, res) => proxyRequest('/api/Tour/touroption', 'post', req.body, res));
 app.post("/api/tour-timeslots", (req, res) => proxyRequest('/api/Tour/timeslot', 'post', req.body, res));
