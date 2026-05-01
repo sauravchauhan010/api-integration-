@@ -23,6 +23,82 @@ const BASE_URL = 'https://sandbox.raynatours.com';
  
 app.use(express.json());
 
+// ============================================================
+// CACHE SYSTEM
+// ============================================================
+interface CacheEntry { data: any; expiresAt: number; }
+const cache = new Map<string, CacheEntry>();
+
+const CACHE_TTL = {
+  FOREVER:  365 * 24 * 60 * 60 * 1000,
+  LONG:       6 * 60 * 60 * 1000,
+  MEDIUM:     1 * 60 * 60 * 1000,
+};
+
+const getCache = (key: string) => {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { cache.delete(key); return null; }
+  return entry.data;
+};
+
+const setCache = (key: string, data: any, ttl: number) => {
+  cache.set(key, { data, expiresAt: Date.now() + ttl });
+};
+
+const cachedProxyRequest = async (endpoint: string, method: 'get' | 'post', body: any, res: express.Response, ttl: number) => {
+  const cacheKey = `${endpoint}::${JSON.stringify(body)}`;
+  const cached = getCache(cacheKey);
+  if (cached) {
+    console.log(`[CACHE HIT] ${endpoint}`);
+    return res.json(cached);
+  }
+  console.log(`[CACHE MISS] ${endpoint} — fetching from Rayna...`);
+  try {
+    const config: any = {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}`
+      }
+    };
+    const response = method === 'get'
+      ? await axios.get(`${BASE_URL}${endpoint}`, config)
+      : await axios.post(`${BASE_URL}${endpoint}`, body, config);
+    setCache(cacheKey, response.data, ttl);
+    res.json(response.data);
+  } catch (error: any) {
+    console.error(`Proxy error (${endpoint}):`, error.message);
+    if (error.response) res.status(error.response.status).json(error.response.data);
+    else res.status(500).json({ error: `Failed to fetch from Rayna: ${endpoint}` });
+  }
+};
+
+app.get("/api/cache/clear", (req, res) => {
+  const { key, endpoint } = req.query as { key?: string; endpoint?: string };
+  const secretKey = process.env.CACHE_CLEAR_KEY || 'saurav123';
+  if (key !== secretKey) return res.status(403).json({ error: 'Invalid key' });
+  if (endpoint) {
+    let cleared = 0;
+    cache.forEach((_, k) => { if (k.startsWith(endpoint as string)) { cache.delete(k); cleared++; } });
+    return res.json({ success: true, message: `Cleared ${cleared} entries for ${endpoint}` });
+  }
+  const size = cache.size;
+  cache.clear();
+  return res.json({ success: true, message: `Cleared all ${size} cache entries` });
+});
+
+app.get("/api/cache/status", (req, res) => {
+  const { key } = req.query as { key?: string };
+  const secretKey = process.env.CACHE_CLEAR_KEY || 'saurav123';
+  if (key !== secretKey) return res.status(403).json({ error: 'Invalid key' });
+  const entries: any[] = [];
+  cache.forEach((val, k) => {
+    entries.push({ key: k.split('::')[0], expiresIn: Math.round((val.expiresAt - Date.now()) / 1000 / 60) + ' mins' });
+  });
+  res.json({ totalEntries: cache.size, entries });
+});
+// ============================================================
+
 app.get("/api/health", (req, res) => {
   try {
     const userCount = db.prepare("SELECT COUNT(*) as count FROM users").get() as any;
