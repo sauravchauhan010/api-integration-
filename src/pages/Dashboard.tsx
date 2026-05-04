@@ -17,7 +17,7 @@ export const Dashboard = () => {
   const [showPaxDropdown, setShowPaxDropdown] = useState(false);
 
   const totalPax = adults + children + infants;
-  const MAX_PAX = 6100;
+  const MAX_PAX = 500;
 
   useEffect(() => {
     const loadCities = async () => {
