@@ -13,9 +13,8 @@ const getImageUrl = (path: string) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
-  // If path doesn't have an extension, it's a "break path", append _L.jpg
-  if (!path.includes('.')) {
-    return `${cdn}${path}_L.jpg`;
+if (!url.includes('.')) return `${cdn}${url}_L.jpg`;
+return `${cdn}${url}`;
   }
   return `${cdn}${path}`;
 };
