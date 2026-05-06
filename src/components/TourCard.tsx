@@ -13,8 +13,8 @@ const getImageUrl = (path: string) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
-if (!url.includes('.')) return `${cdn}${url}_L.jpg`;
-return `${cdn}${url}`;
+  if (!path.includes('.')) {
+    return `${cdn}${path}_L.jpg`;
   }
   return `${cdn}${path}`;
 };
