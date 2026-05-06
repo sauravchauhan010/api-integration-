@@ -119,8 +119,8 @@ export const TourDetailView = () => {
       return url;
     }
     const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
-    if (!url.includes('.')) return cdn + url + '_L.jpg';
-    return cdn + url;
+   const cleanUrl = url.startsWith('/') ? url : '/' + url;
+return cdn + cleanUrl;
   };
 
   const allImages = tour ? [{ imagePath: tour.imagePath }, ...(tour.tourImages || [])] : [];
