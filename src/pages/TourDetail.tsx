@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Globe, Star, Clock, ShieldCheck, X, Calendar, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Globe, Star, Clock, ShieldCheck, X, Calendar, ChevronDown, ShoppingCart } from 'lucide-react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { tourService } from '../services/api';
 import { TourDetail, TourOptionPrice, TourOptionStaticData, TimeSlot } from '../types';
 import { BookingModal } from '../components/BookingModal';
+import { useCart } from '../context/CartContext';
 
 export const TourDetailView = () => {
   const navigate = useNavigate();
+  const { addItem, isInCart } = useCart();
   const { tourId } = useParams();
   const [searchParams] = useSearchParams();
   const cityId = searchParams.get('cityId');
@@ -116,7 +118,7 @@ export const TourDetailView = () => {
       if (!lastSegment.includes('.')) return url + '_L.jpg';
       return url;
     }
-    const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
+    const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net/';
     if (!url.includes('.')) return cdn + url + '_L.jpg';
     return cdn + url;
   };
@@ -358,8 +360,48 @@ export const TourDetailView = () => {
                       <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total Amount</p>
                       <p className="text-3xl font-display font-bold text-brand">AED {isSel ? calculateTotal(curLP.adultPrice, curLP.childPrice, curLP.infantPrice) : optLP[0].finalAmount}</p>
                       {isSel && (
-                        <button onClick={(e) => { e.stopPropagation(); setIsBookingModalOpen(true); }} disabled={tour.isSlot && !selectedTimeSlotId} className={'mt-3 bg-brand text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all ' + (tour.isSlot && !selectedTimeSlotId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dark')}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setIsBookingModalOpen(true); }}
+                          disabled={tour.isSlot && !selectedTimeSlotId}
+                          className={'mt-3 bg-brand text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all ' + (tour.isSlot && !selectedTimeSlotId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dark')}
+                        >
                           Book Now
+                        </button>
+                      )}
+                      {isSel && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const inCart = isInCart(opt.tourOptionId, opt.tourOptionId);
+                            if (!inCart) {
+                              addItem({
+                                tourId: Number(tourId),
+                                tourName: tour.tourName,
+                                optionId: opt.tourOptionId,
+                                optionName: opt.optionName,
+                                transferId: selectedTransferId || 0,
+                                transferName: curLP.transferName || '',
+                                contractId: Number(contractId),
+                                tourDate: selectedDate,
+                                startTime: curLP.startTime || '00:00:00',
+                                timeSlotId: selectedTimeSlotId || '0',
+                                adults,
+                                children,
+                                infants,
+                                adultRate: curLP.adultPrice,
+                                childRate: curLP.childPrice,
+                                infantRate: curLP.infantPrice,
+                                total: calculateTotal(curLP.adultPrice, curLP.childPrice, curLP.infantPrice),
+                                imageUrl: tour.imagePath,
+                                cityTourType: tour.cityTourType,
+                              });
+                            }
+                          }}
+                          disabled={tour.isSlot && !selectedTimeSlotId}
+                          className={'mt-2 border-2 border-brand text-brand px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ' + (isInCart(opt.tourOptionId, opt.tourOptionId) ? 'bg-brand/10 cursor-default' : 'hover:bg-brand/5') + ' ' + (tour.isSlot && !selectedTimeSlotId ? 'opacity-50 cursor-not-allowed' : '')}
+                        >
+                          <ShoppingCart size={15} />
+                          {isInCart(opt.tourOptionId, opt.tourOptionId) ? 'Added to Cart' : 'Add to Cart'}
                         </button>
                       )}
                     </div>
