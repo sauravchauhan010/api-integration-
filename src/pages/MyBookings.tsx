@@ -96,44 +96,42 @@ const MyBookings: React.FC = () => {
   };
 
   const handleCancelBooking = async (booking: Booking) => {
-    if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) return;
-    
-    setCancellingId(booking.id);
-    try {
-      const response = await fetch('/api/cancel-booking', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          bookingId: Number(booking.rayna_booking_id),
-          referenceNo: booking.reference_no,
-          cancellationReason: "Cancelled by user via B2B portal"
-        })
-      });
+  if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) return;
 
-     const data = await response.json();
-      const isSuccess = response.ok && (
-        data.statuscode === 200 ||
-        data.result?.status === 1 ||
-        data.result?.status === 'Success' ||
-        data.status === 'Success' ||
-        data.isSuccess === true
-      );
-      if (isSuccess) {
-        alert('Booking cancelled successfully.');
-        fetchBookings();
-      } else {
-        alert(data.result?.message || data.message || data.error || 'Failed to cancel booking.');
-      }
-    } catch (err) {
-      console.error('Cancel error:', err);
-      alert('Failed to cancel booking.');
-    } finally {
-      setCancellingId(null);
+  setCancellingId(booking.id);
+
+  try {
+    const response = await fetch('/api/cancel-booking', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        bookingId: Number(booking.rayna_booking_id),
+        referenceNo: booking.reference_no,
+        cancellationReason: "Cancelled by user via B2B portal"
+      })
+    });
+
+    const data = await response.json();
+
+    const status = Number(data?.result?.status);
+
+    if (status === 1) {
+      alert('Booking cancelled successfully.');
+      fetchBookings();
+    } else {
+      alert(data?.result?.message || 'Failed to cancel booking.');
     }
-  };
+
+  } catch (err) {
+    console.error('Cancel error:', err);
+    alert('Failed to cancel booking.');
+  } finally {
+    setCancellingId(null);
+  }
+};
 
   const filteredBookings = bookings.filter(booking => {
     const matchesSearch = booking.tour_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
