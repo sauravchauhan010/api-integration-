@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Phone, Globe, Menu, X, ChevronDown, Ticket, LogOut, User as UserIcon } from 'lucide-react';
+import { Phone, Globe, Menu, X, ChevronDown, Ticket, LogOut, User as UserIcon, ShoppingCart } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 export const Navbar = () => {
   const { user, logout } = useAuth();
+  const { items, openCart } = useCart();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -22,7 +24,7 @@ export const Navbar = () => {
           <div className="flex items-center gap-12">
             <Link to="/dashboard" className="flex items-center cursor-pointer group" onClick={() => setMobileOpen(false)}>
               <img 
-                src="https://i.ibb.co/3yjpZ6g6/q.png" 
+                src="https://picsum.photos/seed/travel-b2b-logo/400/120" 
                 alt="Rayna B2B" 
                 className="h-14 w-auto object-contain"
                 referrerPolicy="no-referrer"
@@ -81,6 +83,18 @@ export const Navbar = () => {
             
             {user ? (
               <div className="flex items-center gap-6">
+                <button
+                  onClick={openCart}
+                  className="relative p-2.5 text-slate-600 hover:text-brand transition-colors hover:bg-brand/5 rounded-xl"
+                  title="Cart"
+                >
+                  <ShoppingCart size={20} />
+                  {items.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-brand text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                      {items.length}
+                    </span>
+                  )}
+                </button>
                 <Link to="/profile" className="flex items-center gap-4 hover:opacity-80 transition-opacity">
                   <div className="relative cursor-pointer group">
                     <div className="w-10 h-10 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors overflow-hidden">
