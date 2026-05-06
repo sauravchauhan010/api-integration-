@@ -39,7 +39,7 @@ export const CartDrawer = () => {
     try {
       const uniqueNo = `B2B${Date.now()}`;
       const TourDetails = items.map((item, idx) => ({
-        serviceUniqueId: Date.now() + idx,
+        serviceUniqueId: Math.floor(100000 + Math.random() * 900000),
         tourId: item.tourId,
         optionId: item.optionId,
         adult: item.adults,
