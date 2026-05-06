@@ -183,9 +183,8 @@ export const TourDetailView = () => {
 
         <div className="relative w-full h-[460px] rounded-3xl overflow-hidden shadow-2xl bg-slate-200">
           <img
-  src={getImageUrl(activeImage)}
-  className="w-full h-full object-cover cursor-pointer"
-  onClick={() => setIsImageViewerOpen(true)}
+            src={getImageUrl(activeImage)}
+            className="w-full h-full object-cover"
             alt={tour.tourName}
             referrerPolicy="no-referrer"
             onError={(e) => { (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/' + tour.tourId + '/1200/600'; }}
@@ -459,46 +458,6 @@ export const TourDetailView = () => {
         </div>
 
       </div>
-
-      {isImageViewerOpen && (
-  <div className="fixed inset-0 bg-black/90 z-[999] flex items-center justify-center">
-
-    {/* Close */}
-    <button
-      onClick={() => setIsImageViewerOpen(false)}
-      className="absolute top-6 right-6 text-white"
-    >
-      <X size={30} />
-    </button>
-
-    {/* Left */}
-    {allImages.length > 1 && (
-      <button
-        onClick={() => changeImage(-1)}
-        className="absolute left-6 top-1/2 -translate-y-1/2 text-white"
-      >
-        <ChevronLeft size={40} />
-      </button>
-    )}
-
-    {/* Image */}
-    <img
-      src={getImageUrl(activeImage)}
-      className="max-h-[90%] max-w-[90%] object-contain"
-    />
-
-    {/* Right */}
-    {allImages.length > 1 && (
-      <button
-        onClick={() => changeImage(1)}
-        className="absolute right-6 top-1/2 -translate-y-1/2 text-white"
-      >
-        <ChevronRight size={40} />
-      </button>
-    )}
-
-  </div>
-)}
     </div>
   );
 };
