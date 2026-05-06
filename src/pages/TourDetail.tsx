@@ -118,10 +118,15 @@ export const TourDetailView = () => {
       if (!lastSegment.includes('.')) return url + '_L.jpg';
       return url;
     }
-    const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
-   const cleanUrl = url.startsWith('/') ? url : '/' + url;
-return cdn + cleanUrl;
-  };
+   const getImageUrl = (path: string) => {
+  if (!path) return '';
+  if (path.startsWith('http')) return path;
+  const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
+  // Handle both with and without leading slash
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  if (!cleanPath.includes('.')) return `${cdn}${cleanPath}_L.jpg`;
+  return `${cdn}${cleanPath}`;
+};
 
   const allImages = tour ? [{ imagePath: tour.imagePath }, ...(tour.tourImages || [])] : [];
 
