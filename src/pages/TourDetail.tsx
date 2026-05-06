@@ -113,13 +113,6 @@ export const TourDetailView = () => {
 
   const getImageUrl = (url: string) => {
     if (!url) return '';
-    if (url.startsWith('http')) {
-      const lastSegment = url.split('/').pop() || '';
-      if (!lastSegment.includes('.')) return url + '_L.jpg';
-      return url;
-    }
-   const getImageUrl = (url: string) => {
-    if (!url) return '';
     if (url.startsWith('http')) return url;
     const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
     const cleanPath = url.startsWith('/') ? url : '/' + url;
