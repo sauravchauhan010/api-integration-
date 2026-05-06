@@ -13,10 +13,10 @@ const getImageUrl = (path: string) => {
   if (!path) return '';
   if (path.startsWith('http')) return path;
   const cdn = 'https://d1i3enf1i5tb1f.cloudfront.net';
-  if (!path.includes('.')) {
-    return `${cdn}${path}_L.jpg`;
-  }
-  return `${cdn}${path}`;
+  // Handle both with and without leading slash
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  if (!cleanPath.includes('.')) return `${cdn}${cleanPath}_L.jpg`;
+  return `${cdn}${cleanPath}`;
 };
 
 export const TourCard: React.FC<TourCardProps> = ({ tour, idx, onClick }) => {
