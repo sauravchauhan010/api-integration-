@@ -109,7 +109,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const serviceTotal = ((adults * adultRate) + (childrenCount * childRate) + (infants * infantRate)).toFixed(2);
     const uniqueNo = "B2B" + Date.now() + Math.floor(Math.random() * 1000);
-    const serviceUniqueId = Math.floor(Math.random() * 1000000);
+    const serviceUniqueId = Math.floor(100000 + Math.random() * 900000);
 
     const bookingData: any = {
       uniqueNo,
