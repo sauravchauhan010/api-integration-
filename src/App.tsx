@@ -11,23 +11,22 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+import { CartDrawer } from './components/CartDrawer';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 const ScrollToTop = () => {
   const [visible, setVisible] = useState(false);
-
   useEffect(() => {
     const onScroll = () => setVisible(window.scrollY > 300);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
   if (!visible) return null;
-
   return (
     <button
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="fixed bottom-8 right-8 z-50 w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
+      className="fixed bottom-8 right-8 z-50 w-12 h-12 bg-slate-900 hover:bg-slate-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all"
     >
       <ChevronUp size={22} />
     </button>
@@ -37,21 +36,23 @@ const ScrollToTop = () => {
 export default function App() {
   return (
     <AuthProvider>
-      <div className="font-sans text-gray-900 selection:bg-[#f27d26]/30 bg-white min-h-screen">
-        <Navbar />
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/results" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
-          <Route path="/detail/:tourId" element={<ProtectedRoute><TourDetailView /></ProtectedRoute>} />
-          <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-        </Routes>
-        <ScrollToTop />
-      </div>
+      <CartProvider>
+        <div className="font-sans text-gray-900 selection:bg-[#f27d26]/30 bg-white min-h-screen">
+          <Navbar />
+          <CartDrawer />
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/results" element={<ProtectedRoute><SearchResults /></ProtectedRoute>} />
+            <Route path="/detail/:tourId" element={<ProtectedRoute><TourDetailView /></ProtectedRoute>} />
+            <Route path="/my-bookings" element={<ProtectedRoute><MyBookings /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+          </Routes>
+          <ScrollToTop />
+        </div>
+      </CartProvider>
     </AuthProvider>
   );
 }
