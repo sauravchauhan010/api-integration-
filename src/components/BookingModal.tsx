@@ -149,7 +149,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         tourId,
         travelDate: tourDate,
         totalAmount: Number(serviceTotal),
-        paxDetails: { adults, children: childrenCount, infants }
+        paxDetails: {
+          adults, children: childrenCount, infants,
+          adultRate, childRate, infantRate,
+          passengerName: `${formData.prefix} ${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          mobile: formData.mobile,
+        }
       }
     };
 
