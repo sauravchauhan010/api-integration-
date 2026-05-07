@@ -35,6 +35,7 @@ export const TourDetailView = () => {
   const [children, setChildren] = useState(initialChildren);
   const [infants, setInfants] = useState(initialInfants);
   const [showPaxDropdown, setShowPaxDropdown] = useState<number | null>(null);
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const calculateTotal = (adultPrice: number, childPrice: number, infantPrice: number) => {
     return (adults * adultPrice) + (children * childPrice) + (infants * infantPrice);
@@ -210,21 +211,52 @@ export const TourDetailView = () => {
           )}
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-2">
+        <div className="relative flex gap-3 overflow-x-auto pb-2">
           {allImages.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => { setActiveImageIndex(idx); setActiveImage(allImages[idx].imagePath); }}
-              className={'relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ' + (activeImageIndex === idx ? 'border-brand scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100')}
-            >
-              <img
-                src={getImageUrl(img.imagePath)}
-                className="w-full h-full object-cover"
-                alt=""
-                referrerPolicy="no-referrer"
-                onError={(e) => { (e.target as HTMLImageElement).src = 'https://picsum.photos/seed/' + tour.tourId + '-' + idx + '/200/200'; }}
-              />
-            </button>
+            <div key={idx} className="relative flex-shrink-0">
+              {/* Hover Preview Popup */}
+              {hoverIndex === idx && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 pointer-events-none">
+                  <div className="relative w-64 h-44 rounded-2xl overflow-hidden shadow-2xl border-2 border-white ring-2 ring-brand/20">
+                    <img
+                      src={getImageUrl(img.imagePath)}
+                      className="w-full h-full object-cover"
+                      alt=""
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      {idx + 1} / {allImages.length}
+                    </div>
+                  </div>
+                  {/* Arrow pointing down */}
+                  <div className="w-3 h-3 bg-white border-r-2 border-b-2 border-brand/20 rotate-45 mx-auto -mt-1.5 shadow-sm" />
+                </div>
+              )}
+
+              {/* Thumbnail */}
+              <button
+                onClick={() => { setActiveImageIndex(idx); setActiveImage(allImages[idx].imagePath); }}
+                onMouseEnter={() => setHoverIndex(idx)}
+                onMouseLeave={() => setHoverIndex(null)}
+                className={'relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ' +
+                  (activeImageIndex === idx
+                    ? 'border-brand scale-105 shadow-lg opacity-100'
+                    : 'border-transparent opacity-60 hover:opacity-100 hover:border-slate-300 hover:scale-105'
+                  )}
+              >
+                <img
+                  src={getImageUrl(img.imagePath)}
+                  className="w-full h-full object-cover"
+                  alt=""
+                  referrerPolicy="no-referrer"
+                />
+                {/* Active indicator */}
+                {activeImageIndex === idx && (
+                  <div className="absolute inset-0 bg-brand/10" />
+                )}
+              </button>
+            </div>
           ))}
         </div>
 
