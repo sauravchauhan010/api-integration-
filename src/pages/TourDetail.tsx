@@ -35,7 +35,7 @@ export const TourDetailView = () => {
   const [children, setChildren] = useState(initialChildren);
   const [infants, setInfants] = useState(initialInfants);
   const [showPaxDropdown, setShowPaxDropdown] = useState<number | null>(null);
-  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const calculateTotal = (adultPrice: number, childPrice: number, infantPrice: number) => {
     return (adults * adultPrice) + (children * childPrice) + (infants * infantPrice);
@@ -182,7 +182,7 @@ export const TourDetailView = () => {
 
       <div className="max-w-full mx-auto px-8 py-10 space-y-6">
 
-        <div className="relative w-full h-[460px] rounded-3xl overflow-hidden shadow-2xl bg-slate-200">
+        <div className="relative w-full h-[460px] rounded-3xl overflow-hidden shadow-2xl bg-slate-200 cursor-zoom-in" onClick={() => setLightboxIndex(activeImageIndex)}>
           <img
             src={getImageUrl(activeImage)}
             className="w-full h-full object-cover"
@@ -200,63 +200,95 @@ export const TourDetailView = () => {
             </div>
           )}
           {allImages.length > 1 && (
-            <button onClick={() => changeImage(-1)} className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/90 hover:bg-brand hover:text-white rounded-full flex items-center justify-center shadow-lg transition-all text-slate-800 z-10">
+            <button onClick={(e) => { e.stopPropagation(); changeImage(-1); }} className="absolute left-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/90 hover:bg-brand hover:text-white rounded-full flex items-center justify-center shadow-lg transition-all text-slate-800 z-10">
               <ChevronLeft size={22} />
             </button>
           )}
           {allImages.length > 1 && (
-            <button onClick={() => changeImage(1)} className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/90 hover:bg-brand hover:text-white rounded-full flex items-center justify-center shadow-lg transition-all text-slate-800 z-10">
+            <button onClick={(e) => { e.stopPropagation(); changeImage(1); }} className="absolute right-4 top-1/2 -translate-y-1/2 w-11 h-11 bg-white/90 hover:bg-brand hover:text-white rounded-full flex items-center justify-center shadow-lg transition-all text-slate-800 z-10">
               <ChevronRight size={22} />
             </button>
           )}
         </div>
 
-        <div className="relative flex gap-3 overflow-x-auto pb-2">
-          {allImages.map((img, idx) => (
-            <div key={idx} className="relative flex-shrink-0">
-              {/* Hover Preview Popup */}
-              {hoverIndex === idx && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 z-50 pointer-events-none">
-                  <div className="relative w-64 h-44 rounded-2xl overflow-hidden shadow-2xl border-2 border-white ring-2 ring-brand/20">
-                    <img
-                      src={getImageUrl(img.imagePath)}
-                      className="w-full h-full object-cover"
-                      alt=""
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-                    <div className="absolute bottom-2 right-2 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                      {idx + 1} / {allImages.length}
-                    </div>
-                  </div>
-                  {/* Arrow pointing down */}
-                  <div className="w-3 h-3 bg-white border-r-2 border-b-2 border-brand/20 rotate-45 mx-auto -mt-1.5 shadow-sm" />
-                </div>
-              )}
+        {/* FULLSCREEN LIGHTBOX */}
+        {lightboxIndex !== null && (
+          <div
+            className="fixed inset-0 bg-black/95 z-[999] flex items-center justify-center"
+            onClick={() => setLightboxIndex(null)}
+          >
+            {/* Close button */}
+            <button
+              className="absolute top-5 right-5 w-11 h-11 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center text-white transition-all z-10"
+              onClick={() => setLightboxIndex(null)}
+            >
+              <X size={22} />
+            </button>
 
-              {/* Thumbnail */}
-              <button
-                onClick={() => { setActiveImageIndex(idx); setActiveImage(allImages[idx].imagePath); }}
-                onMouseEnter={() => setHoverIndex(idx)}
-                onMouseLeave={() => setHoverIndex(null)}
-                className={'relative w-20 h-20 rounded-xl overflow-hidden border-2 transition-all duration-200 ' +
-                  (activeImageIndex === idx
-                    ? 'border-brand scale-105 shadow-lg opacity-100'
-                    : 'border-transparent opacity-60 hover:opacity-100 hover:border-slate-300 hover:scale-105'
-                  )}
-              >
-                <img
-                  src={getImageUrl(img.imagePath)}
-                  className="w-full h-full object-cover"
-                  alt=""
-                  referrerPolicy="no-referrer"
-                />
-                {/* Active indicator */}
-                {activeImageIndex === idx && (
-                  <div className="absolute inset-0 bg-brand/10" />
-                )}
-              </button>
+            {/* Counter */}
+            <div className="absolute top-5 left-1/2 -translate-x-1/2 bg-white/10 text-white text-sm font-bold px-4 py-1.5 rounded-full">
+              {lightboxIndex + 1} / {allImages.length}
             </div>
+
+            {/* Prev */}
+            <button
+              className="absolute left-5 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-brand rounded-full flex items-center justify-center text-white transition-all z-10"
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex - 1 + allImages.length) % allImages.length); }}
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            {/* Image */}
+            <img
+              src={getImageUrl(allImages[lightboxIndex].imagePath)}
+              className="max-w-[90vw] max-h-[85vh] object-contain rounded-2xl"
+              alt=""
+              referrerPolicy="no-referrer"
+              onClick={(e) => e.stopPropagation()}
+            />
+
+            {/* Next */}
+            <button
+              className="absolute right-5 top-1/2 -translate-y-1/2 w-12 h-12 bg-white/10 hover:bg-brand rounded-full flex items-center justify-center text-white transition-all z-10"
+              onClick={(e) => { e.stopPropagation(); setLightboxIndex((lightboxIndex + 1) % allImages.length); }}
+            >
+              <ChevronRight size={24} />
+            </button>
+
+            {/* Thumbnail strip at bottom */}
+            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2 overflow-x-auto max-w-[90vw] px-4">
+              {allImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={(e) => { e.stopPropagation(); setLightboxIndex(idx); }}
+                  className={'w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ' + (lightboxIndex === idx ? 'border-brand scale-110' : 'border-transparent opacity-50 hover:opacity-100')}
+                >
+                  <img src={getImageUrl(img.imagePath)} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* THUMBNAILS */}
+        <div className="flex gap-3 overflow-x-auto pb-2">
+          {allImages.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => { setActiveImageIndex(idx); setActiveImage(allImages[idx].imagePath); }}
+              onDoubleClick={() => setLightboxIndex(idx)}
+              title="Double-click for fullscreen"
+              className={'relative w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 border-2 transition-all ' +
+                (activeImageIndex === idx ? 'border-brand scale-105 shadow-lg opacity-100' : 'border-transparent opacity-60 hover:opacity-100 hover:scale-105')}
+            >
+              <img
+                src={getImageUrl(img.imagePath)}
+                className="w-full h-full object-cover"
+                alt=""
+                referrerPolicy="no-referrer"
+              />
+              {activeImageIndex === idx && <div className="absolute inset-0 bg-brand/10" />}
+            </button>
           ))}
         </div>
 
