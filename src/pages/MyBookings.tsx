@@ -105,7 +105,7 @@ const MyBookings: React.FC = () => {
   );
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="max-w-full mx-auto px-8 py-12">
 
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -230,9 +230,9 @@ const MyBookings: React.FC = () => {
             >
               {/* Modal Header */}
               <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-start">
-                <div>
-                  <h2 className="text-xl font-bold text-slate-900">{selectedBooking.tour_name}</h2>
-                  <p className="text-slate-400 text-sm mt-0.5">Booking Details</p>
+                <div className="flex-1 min-w-0 pr-4">
+                  <h2 className="text-xl font-bold text-slate-900 truncate">{selectedBooking.tour_name}</h2>
+                  <p className="text-slate-400 text-sm mt-0.5 truncate">{selectedBooking.option_name || 'Standard Option'}</p>
                 </div>
                 <button onClick={() => setSelectedBooking(null)} className="w-9 h-9 bg-slate-50 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors">
                   <X size={18} />
@@ -280,29 +280,62 @@ const MyBookings: React.FC = () => {
                       const adults = pax.adults || 0;
                       const children = pax.children || 0;
                       const infants = pax.infants || 0;
+                      const adultRate = pax.adultRate || 0;
+                      const childRate = pax.childRate || 0;
+                      const infantRate = pax.infantRate || 0;
+                      const passengerName = pax.passengerName || '';
+                      const email = pax.email || '';
+                      const mobile = pax.mobile || '';
                       return (
-                        <div className="flex gap-3">
-                          {adults > 0 && (
-                            <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                              <p className="text-xl font-bold text-slate-900">{adults}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">Adult{adults > 1 ? 's' : ''}</p>
+                        <div className="space-y-3">
+                          {/* Lead passenger info */}
+                          {passengerName && (
+                            <div className="bg-slate-50 rounded-xl p-4 space-y-2">
+                              <div className="flex justify-between">
+                                <span className="text-xs text-slate-400">Lead Passenger</span>
+                                <span className="text-sm font-semibold text-slate-900">{passengerName}</span>
+                              </div>
+                              {email && (
+                                <div className="flex justify-between">
+                                  <span className="text-xs text-slate-400">Email</span>
+                                  <span className="text-xs text-slate-600">{email}</span>
+                                </div>
+                              )}
+                              {mobile && (
+                                <div className="flex justify-between">
+                                  <span className="text-xs text-slate-400">Mobile</span>
+                                  <span className="text-xs text-slate-600">{mobile}</span>
+                                </div>
+                              )}
                             </div>
                           )}
-                          {children > 0 && (
-                            <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                              <p className="text-xl font-bold text-slate-900">{children}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">Child{children > 1 ? 'ren' : ''}</p>
-                            </div>
-                          )}
-                          {infants > 0 && (
-                            <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                              <p className="text-xl font-bold text-slate-900">{infants}</p>
-                              <p className="text-xs text-slate-400 mt-0.5">Infant{infants > 1 ? 's' : ''}</p>
-                            </div>
-                          )}
-                          {adults === 0 && children === 0 && infants === 0 && (
-                            <p className="text-sm text-slate-400 italic">No passenger details available.</p>
-                          )}
+                          {/* Pax counts + rates */}
+                          <div className="flex gap-3">
+                            {adults > 0 && (
+                              <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                                <p className="text-xl font-bold text-slate-900">{adults}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">Adult{adults > 1 ? 's' : ''}</p>
+                                {adultRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {adultRate}</p>}
+                              </div>
+                            )}
+                            {children > 0 && (
+                              <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                                <p className="text-xl font-bold text-slate-900">{children}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">Child{children > 1 ? 'ren' : ''}</p>
+                                {childRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {childRate}</p>}
+                              </div>
+                            )}
+                            {infants > 0 && (
+                              <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                                <p className="text-xl font-bold text-slate-900">{infants}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">Infant{infants > 1 ? 's' : ''}</p>
+                                {infantRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {infantRate}</p>}
+                              </div>
+                            )}
+                            {adults === 0 && children === 0 && infants === 0 && (
+                              <p className="text-sm text-slate-400 italic">No passenger details available.</p>
+                            )}
+                          </div>
                         </div>
                       );
                     } catch {
