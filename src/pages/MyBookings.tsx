@@ -29,6 +29,11 @@ const MyBookings: React.FC = () => {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [showFilters, setShowFilters] = useState(false);
+  const [travelDateFrom, setTravelDateFrom] = useState('');
+  const [travelDateTo, setTravelDateTo] = useState('');
+  const [bookingDateFrom, setBookingDateFrom] = useState('');
+  const [bookingDateTo, setBookingDateTo] = useState('');
 
   const fetchBookings = async () => {
     if (!token) return;
@@ -90,13 +95,31 @@ const MyBookings: React.FC = () => {
     }
   };
 
+  const hasActiveFilters = travelDateFrom || travelDateTo || bookingDateFrom || bookingDateTo || statusFilter !== 'All';
+
   const filteredBookings = bookings.filter(b => {
     const matchesSearch = b.tour_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       b.rayna_booking_id.includes(searchTerm) ||
       (b.reference_no && b.reference_no.includes(searchTerm));
     const matchesStatus = statusFilter === 'All' || b.status === statusFilter;
-    return matchesSearch && matchesStatus;
+
+    const travelDate = new Date(b.travel_date);
+    const bookingDate = new Date(b.booking_date);
+    const matchesTravelFrom = !travelDateFrom || travelDate >= new Date(travelDateFrom);
+    const matchesTravelTo = !travelDateTo || travelDate <= new Date(travelDateTo);
+    const matchesBookingFrom = !bookingDateFrom || bookingDate >= new Date(bookingDateFrom);
+    const matchesBookingTo = !bookingDateTo || bookingDate <= new Date(bookingDateTo);
+
+    return matchesSearch && matchesStatus && matchesTravelFrom && matchesTravelTo && matchesBookingFrom && matchesBookingTo;
   });
+
+  const clearFilters = () => {
+    setStatusFilter('All');
+    setTravelDateFrom('');
+    setTravelDateTo('');
+    setBookingDateFrom('');
+    setBookingDateTo('');
+  };
 
   if (loading) return (
     <div className="min-h-[60vh] flex items-center justify-center">
@@ -108,36 +131,121 @@ const MyBookings: React.FC = () => {
     <div className="max-w-full mx-auto px-8 py-12">
 
       {/* Header */}
-      <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 mb-1">My Bookings</h1>
-          <p className="text-slate-400">{bookings.length} booking{bookings.length !== 1 ? 's' : ''} total</p>
-        </div>
-        <div className="flex gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-            <input
-              type="text"
-              placeholder="Search..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 focus:border-brand w-48"
-            />
+      <div className="mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-slate-900 mb-1">My Bookings</h1>
+            <p className="text-slate-400">{filteredBookings.length} of {bookings.length} booking{bookings.length !== 1 ? 's' : ''}</p>
           </div>
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none appearance-none cursor-pointer"
+          <div className="flex gap-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 focus:border-brand w-48"
+              />
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all ${
+                hasActiveFilters
+                  ? 'bg-brand text-white border-brand'
+                  : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+              }`}
             >
-              <option value="All">All Status</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Cancelled">Cancelled</option>
-              <option value="Pending">Pending</option>
-            </select>
+              <Filter size={15} />
+              Filters
+              {hasActiveFilters && (
+                <span className="bg-white/30 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {[travelDateFrom || travelDateTo, bookingDateFrom || bookingDateTo, statusFilter !== 'All'].filter(Boolean).length}
+                </span>
+              )}
+            </button>
           </div>
         </div>
+
+        {/* Filter Panel */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+
+                  {/* Status */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Status</label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 appearance-none cursor-pointer"
+                    >
+                      <option value="All">All Status</option>
+                      <option value="Confirmed">Confirmed</option>
+                      <option value="Cancelled">Cancelled</option>
+                      <option value="Pending">Pending</option>
+                    </select>
+                  </div>
+
+                  {/* Travel Date Range */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Travel Date</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={travelDateFrom}
+                        onChange={(e) => setTravelDateFrom(e.target.value)}
+                        className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 cursor-pointer"
+                      />
+                      <span className="text-slate-300 text-xs font-bold">TO</span>
+                      <input
+                        type="date"
+                        value={travelDateTo}
+                        onChange={(e) => setTravelDateTo(e.target.value)}
+                        className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Booking Date Range */}
+                  <div>
+                    <label className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 block">Booking Date</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        value={bookingDateFrom}
+                        onChange={(e) => setBookingDateFrom(e.target.value)}
+                        className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 cursor-pointer"
+                      />
+                      <span className="text-slate-300 text-xs font-bold">TO</span>
+                      <input
+                        type="date"
+                        value={bookingDateTo}
+                        onChange={(e) => setBookingDateTo(e.target.value)}
+                        className="flex-1 px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand/10 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {hasActiveFilters && (
+                  <div className="flex justify-end pt-1">
+                    <button onClick={clearFilters} className="text-xs font-semibold text-red-500 hover:text-red-600 flex items-center gap-1">
+                      <X size={12} /> Clear all filters
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {error && (
@@ -288,8 +396,8 @@ const MyBookings: React.FC = () => {
                       const mobile = pax.mobile || '';
                       return (
                         <div className="space-y-3">
-                          {/* Lead passenger info */}
-                          {passengerName && (
+                          {/* Lead passenger info — only shown if name exists */}
+                          {passengerName ? (
                             <div className="bg-slate-50 rounded-xl p-4 space-y-2">
                               <div className="flex justify-between">
                                 <span className="text-xs text-slate-400">Lead Passenger</span>
@@ -308,34 +416,35 @@ const MyBookings: React.FC = () => {
                                 </div>
                               )}
                             </div>
-                          )}
+                          ) : null}
                           {/* Pax counts + rates */}
-                          <div className="flex gap-3">
-                            {adults > 0 && (
-                              <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                                <p className="text-xl font-bold text-slate-900">{adults}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">Adult{adults > 1 ? 's' : ''}</p>
-                                {adultRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {adultRate}</p>}
-                              </div>
-                            )}
-                            {children > 0 && (
-                              <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                                <p className="text-xl font-bold text-slate-900">{children}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">Child{children > 1 ? 'ren' : ''}</p>
-                                {childRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {childRate}</p>}
-                              </div>
-                            )}
-                            {infants > 0 && (
-                              <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
-                                <p className="text-xl font-bold text-slate-900">{infants}</p>
-                                <p className="text-xs text-slate-400 mt-0.5">Infant{infants > 1 ? 's' : ''}</p>
-                                {infantRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {infantRate}</p>}
-                              </div>
-                            )}
-                            {adults === 0 && children === 0 && infants === 0 && (
-                              <p className="text-sm text-slate-400 italic">No passenger details available.</p>
-                            )}
-                          </div>
+                          {adults === 0 && children === 0 && infants === 0 ? (
+                            <p className="text-sm text-slate-400 italic">No passenger details available.</p>
+                          ) : (
+                            <div className="flex gap-3">
+                              {adults > 0 && (
+                                <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                                  <p className="text-xl font-bold text-slate-900">{adults}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5">Adult{adults > 1 ? 's' : ''}</p>
+                                  {adultRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {adultRate} each</p>}
+                                </div>
+                              )}
+                              {children > 0 && (
+                                <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                                  <p className="text-xl font-bold text-slate-900">{children}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5">Child{children > 1 ? 'ren' : ''}</p>
+                                  {childRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {childRate} each</p>}
+                                </div>
+                              )}
+                              {infants > 0 && (
+                                <div className="flex-1 bg-slate-50 rounded-xl p-3 text-center border border-slate-100">
+                                  <p className="text-xl font-bold text-slate-900">{infants}</p>
+                                  <p className="text-xs text-slate-400 mt-0.5">Infant{infants > 1 ? 's' : ''}</p>
+                                  {infantRate > 0 && <p className="text-xs font-bold text-brand mt-1">AED {infantRate} each</p>}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </div>
                       );
                     } catch {
@@ -350,14 +459,16 @@ const MyBookings: React.FC = () => {
                 <button onClick={() => setSelectedBooking(null)} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 font-semibold rounded-xl hover:bg-slate-100 transition-all text-sm">
                   Close
                 </button>
-                <button
-                  onClick={() => handleDownloadTicket(selectedBooking)}
-                  disabled={downloadingId === selectedBooking.id}
-                  className="px-5 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all text-sm flex items-center gap-2"
-                >
-                  {downloadingId === selectedBooking.id ? <Loader2 size={14} className="animate-spin" /> : null}
-                  Download Ticket
-                </button>
+                {selectedBooking.status !== 'Cancelled' && (
+                  <button
+                    onClick={() => handleDownloadTicket(selectedBooking)}
+                    disabled={downloadingId === selectedBooking.id}
+                    className="px-5 py-2.5 bg-slate-900 text-white font-semibold rounded-xl hover:bg-slate-700 transition-all text-sm flex items-center gap-2"
+                  >
+                    {downloadingId === selectedBooking.id ? <Loader2 size={14} className="animate-spin" /> : null}
+                    Download Ticket
+                  </button>
+                )}
               </div>
             </motion.div>
           </div>
