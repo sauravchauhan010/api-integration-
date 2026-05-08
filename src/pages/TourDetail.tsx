@@ -35,6 +35,40 @@ export const TourDetailView = () => {
   const [children, setChildren] = useState(initialChildren);
   const [infants, setInfants] = useState(initialInfants);
   const [showPaxDropdown, setShowPaxDropdown] = useState<number | null>(null);
+  const [availError, setAvailError] = useState<string | null>(null);
+  const [availChecking, setAvailChecking] = useState(false);
+
+  const checkAvailability = async (): Promise<boolean> => {
+    if (!selectedOptionId || !selectedTransferId) return true;
+    setAvailChecking(true);
+    try {
+      const response = await fetch('/api/tour-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId: Number(tourId),
+          tourOptionId: selectedOptionId,
+          transferId: selectedTransferId,
+          travelDate: selectedDate.replace(/-/g, '/'),
+          adult: adults,
+          child: children,
+          infant: infants,
+          contractId: Number(contractId),
+        })
+      });
+      const data = await response.json();
+      if (data?.result?.status !== 1) {
+        setAvailError(data?.result?.message || 'This tour is not available for the selected date.');
+        return false;
+      }
+      return true;
+    } catch {
+      setAvailError('Failed to check availability. Please try again.');
+      return false;
+    } finally {
+      setAvailChecking(false);
+    }
+  };
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
 
   const calculateTotal = (adultPrice: number, childPrice: number, infantPrice: number) => {
@@ -149,6 +183,26 @@ export const TourDetailView = () => {
 
   return (
     <div className="bg-slate-50 min-h-screen pb-24">
+      {/* Availability Error Dialog */}
+      {availError && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setAvailError(null)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X size={28} className="text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">Not Available</h3>
+            <p className="text-slate-500 text-sm mb-6">{availError}</p>
+            <button
+              onClick={() => setAvailError(null)}
+              className="w-full bg-slate-900 text-white py-3 rounded-2xl font-bold hover:bg-slate-700 transition-all"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <BookingModal
         isOpen={isBookingModalOpen}
         onClose={() => setIsBookingModalOpen(false)}
@@ -174,8 +228,15 @@ export const TourDetailView = () => {
           <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-brand flex items-center gap-1 transition-colors text-sm font-medium">
             <ChevronLeft size={18} /> Back to Results
           </button>
-          <button onClick={() => setIsBookingModalOpen(true)} className="bg-brand text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-brand/20">
-            Book Now
+          <button
+            onClick={async () => {
+              const ok = await checkAvailability();
+              if (ok) setIsBookingModalOpen(true);
+            }}
+            disabled={availChecking}
+            className="bg-brand text-white px-6 py-2 rounded-xl text-sm font-bold shadow-lg shadow-brand/20 flex items-center gap-2"
+          >
+            {availChecking ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Checking...</> : 'Book Now'}
           </button>
         </div>
       </div>
@@ -421,47 +482,51 @@ export const TourDetailView = () => {
                       <p className="text-3xl font-display font-bold text-brand">AED {isSel ? calculateTotal(curLP.adultPrice, curLP.childPrice, curLP.infantPrice) : optLP[0].finalAmount}</p>
                       {isSel && (
                         <button
-                          onClick={(e) => { e.stopPropagation(); setIsBookingModalOpen(true); }}
-                          disabled={tour.isSlot && !selectedTimeSlotId}
-                          className={'mt-3 bg-brand text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all ' + (tour.isSlot && !selectedTimeSlotId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dark')}
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            const ok = await checkAvailability();
+                            if (ok) setIsBookingModalOpen(true);
+                          }}
+                          disabled={availChecking || (tour.isSlot && !selectedTimeSlotId)}
+                          className={'mt-3 bg-brand text-white px-6 py-3 rounded-xl text-sm font-bold shadow-lg transition-all flex items-center gap-2 ' + (tour.isSlot && !selectedTimeSlotId ? 'opacity-50 cursor-not-allowed' : 'hover:bg-brand-dark')}
                         >
-                          Book Now
+                          {availChecking ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Checking...</> : 'Book Now'}
                         </button>
                       )}
                       {isSel && (
                         <button
-                          onClick={(e) => {
+                          onClick={async (e) => {
                             e.stopPropagation();
-                            const inCart = isInCart(opt.tourOptionId, opt.tourOptionId);
-                            if (!inCart) {
-                              addItem({
-                                tourId: Number(tourId),
-                                tourName: tour.tourName,
-                                optionId: opt.tourOptionId,
-                                optionName: opt.optionName,
-                                transferId: selectedTransferId || 0,
-                                transferName: curLP.transferName || '',
-                                contractId: Number(contractId),
-                                tourDate: selectedDate,
-                                startTime: curLP.startTime || '00:00:00',
-                                timeSlotId: selectedTimeSlotId || '0',
-                                adults,
-                                children,
-                                infants,
-                                adultRate: curLP.adultPrice,
-                                childRate: curLP.childPrice,
-                                infantRate: curLP.infantPrice,
-                                total: calculateTotal(curLP.adultPrice, curLP.childPrice, curLP.infantPrice),
-                                imageUrl: tour.imagePath,
-                                cityTourType: tour.cityTourType,
-                              });
-                            }
+                            if (isInCart(opt.tourOptionId, opt.tourOptionId)) return;
+                            const ok = await checkAvailability();
+                            if (!ok) return;
+                            addItem({
+                              tourId: Number(tourId),
+                              tourName: tour.tourName,
+                              optionId: opt.tourOptionId,
+                              optionName: opt.optionName,
+                              transferId: selectedTransferId || 0,
+                              transferName: curLP.transferName || '',
+                              contractId: Number(contractId),
+                              tourDate: selectedDate,
+                              startTime: curLP.startTime || '00:00:00',
+                              timeSlotId: selectedTimeSlotId || '0',
+                              adults,
+                              children,
+                              infants,
+                              adultRate: curLP.adultPrice,
+                              childRate: curLP.childPrice,
+                              infantRate: curLP.infantPrice,
+                              total: calculateTotal(curLP.adultPrice, curLP.childPrice, curLP.infantPrice),
+                              imageUrl: tour.imagePath,
+                              cityTourType: tour.cityTourType,
+                            });
                           }}
-                          disabled={tour.isSlot && !selectedTimeSlotId}
+                          disabled={availChecking || (tour.isSlot && !selectedTimeSlotId)}
                           className={'mt-2 border-2 border-brand text-brand px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ' + (isInCart(opt.tourOptionId, opt.tourOptionId) ? 'bg-brand/10 cursor-default' : 'hover:bg-brand/5') + ' ' + (tour.isSlot && !selectedTimeSlotId ? 'opacity-50 cursor-not-allowed' : '')}
                         >
                           <ShoppingCart size={15} />
-                          {isInCart(opt.tourOptionId, opt.tourOptionId) ? 'Added to Cart' : 'Add to Cart'}
+                          {availChecking ? 'Checking...' : isInCart(opt.tourOptionId, opt.tourOptionId) ? 'Added to Cart' : 'Add to Cart'}
                         </button>
                       )}
                     </div>
