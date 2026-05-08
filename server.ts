@@ -308,6 +308,7 @@ app.post("/api/bookings", async (req, res) => {
       try {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         const { tourName, optionName, tourId, travelDate, totalAmount, paxDetails } = localDetails || {};
+        console.log('paxDetails received:', JSON.stringify(paxDetails, null, 2));
         const booking = new Booking({
           userId: decoded.id,
           raynaBookingId: bookingId.toString(),
