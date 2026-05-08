@@ -107,6 +107,36 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setLoading(true);
     setError(null);
 
+    // Step 1: Check availability before booking
+    try {
+      const availResponse = await fetch('/api/tour-availability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tourId,
+          tourOptionId: optionId,
+          transferId,
+          travelDate: tourDate.replace(/-/g, '/'),
+          adult: adults,
+          child: childrenCount,
+          infant: infants,
+          contractId,
+        })
+      });
+      const availData = await availResponse.json();
+      if (availData?.result?.status !== 1) {
+        setError(availData?.result?.message || 'This tour is not available for the selected date. Please choose a different date or option.');
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setError('Failed to check availability. Please try again.');
+      setLoading(false);
+      return;
+    }
+
+    // Step 2: Proceed with booking
+
     const serviceTotal = ((adults * adultRate) + (childrenCount * childRate) + (infants * infantRate)).toFixed(2);
     const uniqueNo = "B2B" + Date.now() + Math.floor(Math.random() * 1000);
     const serviceUniqueId = Math.floor(100000 + Math.random() * 900000);
