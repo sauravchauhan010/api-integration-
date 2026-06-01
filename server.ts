@@ -81,7 +81,7 @@ if (!process.env.VITE_RAYNA_API_TOKEN) {
 
 const app = express();
 const PORT = 3000;
-const BASE_URL = 'https://devraynaapi.raynatours.com';
+const BASE_URL = 'https://sandbox.raynatours.com';
 
 app.use(express.json());
 
