@@ -339,20 +339,26 @@ app.post("/api/bookings", async (req, res) => {
         const decoded = jwt.verify(token, JWT_SECRET) as any;
         const { tourName, optionName, tourId, travelDate, totalAmount, paxDetails } = localDetails || {};
         console.log('paxDetails received:', JSON.stringify(paxDetails, null, 2));
-        const booking = new Booking({
-          userId: decoded.id,
-          raynaBookingId: bookingId.toString(),
-          referenceNo: referenceNo || "",
-          tourName: tourName || "Unknown Tour",
-          optionName: optionName || "Standard",
-          tourId: tourId || 0,
-          travelDate: travelDate || "",
-          totalAmount: totalAmount || 0,
-          status: "Confirmed",
-          paxDetails: paxDetails || {}
-        });
-        await booking.save();
-        console.log(`Booking saved to MongoDB: ${bookingId}`);
+        // ✅ Duplicate protection — skip saving if booking already exists
+        const existing = await Booking.findOne({ raynaBookingId: bookingId.toString() });
+        if (existing) {
+          console.warn(`⚠️ Duplicate booking detected: ${bookingId} — skipping save.`);
+        } else {
+          const booking = new Booking({
+            userId: decoded.id,
+            raynaBookingId: bookingId.toString(),
+            referenceNo: referenceNo || "",
+            tourName: tourName || "Unknown Tour",
+            optionName: optionName || "Standard",
+            tourId: tourId || 0,
+            travelDate: travelDate || "",
+            totalAmount: totalAmount || 0,
+            status: "Confirmed",
+            paxDetails: paxDetails || {}
+          });
+          await booking.save();
+          console.log(`Booking saved to MongoDB: ${bookingId}`);
+        }
       } catch (e: any) {
         console.error("Failed to save booking:", e.message);
       }
