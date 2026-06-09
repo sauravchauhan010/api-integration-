@@ -108,6 +108,36 @@ const setCache = (key: string, data: any, ttl: number) => {
   cache.set(key, { data, expiresAt: Date.now() + ttl });
 };
 
+// ============================================================
+// RETRY HELPER
+// ============================================================
+const AXIOS_TIMEOUT = 25000; // 25 seconds per attempt
+
+const axiosWithRetry = async (method: 'get' | 'post', url: string, body: any, headers: any, retries = 3): Promise<any> => {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`[ATTEMPT ${attempt}/${retries}] ${method.toUpperCase()} ${url}`);
+      const config: any = { headers, timeout: AXIOS_TIMEOUT };
+      const response = method === 'get'
+        ? await axios.get(url, config)
+        : await axios.post(url, body, config);
+      return response;
+    } catch (error: any) {
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
+      const isLastAttempt = attempt === retries;
+      if (isLastAttempt) throw error;
+      if (isTimeout || !error.response) {
+        const waitMs = attempt * 2000; // 2s, 4s between retries
+        console.warn(`[RETRY] Attempt ${attempt} failed (${error.message}). Retrying in ${waitMs / 1000}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+      } else {
+        throw error; // Don't retry on 4xx errors from Rayna
+      }
+    }
+  }
+};
+// ============================================================
+
 const cachedProxyRequest = async (endpoint: string, method: 'get' | 'post', body: any, res: express.Response, ttl: number) => {
   const cacheKey = `${endpoint}::${JSON.stringify(body)}`;
   const cached = getCache(cacheKey);
@@ -117,15 +147,15 @@ const cachedProxyRequest = async (endpoint: string, method: 'get' | 'post', body
   }
   console.log(`[CACHE MISS] ${endpoint} — fetching from Rayna...`);
   try {
-    const config: any = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}` } };
-    const response = method === 'get'
-      ? await axios.get(`${BASE_URL}${endpoint}`, config)
-      : await axios.post(`${BASE_URL}${endpoint}`, body, config);
+    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}` };
+    const response = await axiosWithRetry(method, `${BASE_URL}${endpoint}`, body, headers);
     setCache(cacheKey, response.data, ttl);
     res.json(response.data);
   } catch (error: any) {
     console.error(`Proxy error (${endpoint}):`, error.message);
-    if (error.response) res.status(error.response.status).json(error.response.data);
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout'))
+      res.status(504).json({ error: `Rayna API timed out for ${endpoint}. Please try again.` });
+    else if (error.response) res.status(error.response.status).json(error.response.data);
     else res.status(500).json({ error: `Failed to fetch from Rayna: ${endpoint}` });
   }
 };
@@ -133,14 +163,14 @@ const cachedProxyRequest = async (endpoint: string, method: 'get' | 'post', body
 const proxyRequest = async (endpoint: string, method: 'get' | 'post', body: any, res: express.Response) => {
   console.log(`Proxying ${method.toUpperCase()} ${endpoint}...`);
   try {
-    const config: any = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}` } };
-    const response = method === 'get'
-      ? await axios.get(`${BASE_URL}${endpoint}`, config)
-      : await axios.post(`${BASE_URL}${endpoint}`, body, config);
+    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}` };
+    const response = await axiosWithRetry(method, `${BASE_URL}${endpoint}`, body, headers);
     res.json(response.data);
   } catch (error: any) {
     console.error(`Proxy error (${endpoint}):`, error.message);
-    if (error.response) res.status(error.response.status).json(error.response.data);
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout'))
+      res.status(504).json({ error: `Rayna API timed out for ${endpoint}. Please try again.` });
+    else if (error.response) res.status(error.response.status).json(error.response.data);
     else res.status(500).json({ error: `Failed to fetch from Rayna: ${endpoint}` });
   }
 };
@@ -295,8 +325,8 @@ app.post("/api/bookings", async (req, res) => {
   const { localDetails, ...raynaPayload } = req.body;
   console.log(`Proxying POST /api/Booking/bookings...`);
   try {
-    const config = { headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}` } };
-    const response = await axios.post(`${BASE_URL}/api/Booking/bookings`, raynaPayload, config);
+    const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.VITE_RAYNA_API_TOKEN}` };
+    const response = await axiosWithRetry('post', `${BASE_URL}/api/Booking/bookings`, raynaPayload, headers, 3);
     console.log(`Rayna Booking Response:`, JSON.stringify(response.data, null, 2));
 
     const authHeader = req.headers.authorization;
@@ -330,7 +360,9 @@ app.post("/api/bookings", async (req, res) => {
     res.json(response.data);
   } catch (error: any) {
     console.error(`Proxy error (/api/Booking/bookings):`, error.message);
-    if (error.response) res.status(error.response.status).json(error.response.data);
+    if (error.code === 'ECONNABORTED' || error.message?.includes('timeout'))
+      res.status(504).json({ error: `Booking request timed out after 3 attempts. Please try again in a moment.` });
+    else if (error.response) res.status(error.response.status).json(error.response.data);
     else res.status(500).json({ error: `Failed to fetch from Rayna: /api/Booking/bookings` });
   }
 });
